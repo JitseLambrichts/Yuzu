@@ -289,8 +289,8 @@ extension WheelPalette {
 /// A glass disc split into rounded segments around a central knob. It is the drop destination itself;
 /// the segment under the cursor follows from the angle to the center.
 final class WheelView: NSView {
-    static let preferredSize: CGFloat = 440
-    static let discRadius: CGFloat = 184
+    static let preferredSize: CGFloat = 400
+    static let discRadius: CGFloat = 166
 
     var items: [WheelItem] = [] {
         didSet {
@@ -316,12 +316,12 @@ final class WheelView: NSView {
     }
     var onDrop: ((WheelItem, [URL]) -> Void)?
 
-    private let knobRadius: CGFloat = 52
-    private var innerRadius: CGFloat { knobRadius + 12 }
-    private var outerRadius: CGFloat { Self.discRadius - 8 }
+    private let knobRadius: CGFloat = 47
+    private var innerRadius: CGFloat { knobRadius + 11 }
+    private var outerRadius: CGFloat { Self.discRadius - 7 }
     /// Space between segments and the rounding of their corners, in points.
-    private let gap: CGFloat = 6
-    private let cornerRadius: CGFloat = 12
+    private let gap: CGFloat = 5.5
+    private let cornerRadius: CGFloat = 11
     /// Per item 0...1: how highlighted it currently is (animated towards the target).
     private var emphasis: [CGFloat] = []
     /// 0...1 while the wheel opens.
@@ -457,8 +457,8 @@ final class WheelView: NSView {
             outside.setClip()
         }
         let shadow = NSShadow()
-        shadow.shadowBlurRadius = 30
-        shadow.shadowOffset = CGSize(width: 0, height: -12)
+        shadow.shadowBlurRadius = 27
+        shadow.shadowOffset = CGSize(width: 0, height: -11)
         shadow.shadowColor = palette.discShadow
         shadow.set()
         palette.discBottom.setFill()
@@ -547,7 +547,7 @@ final class WheelView: NSView {
 
         if amount > 0.01 {
             context.saveGState()
-            context.setShadow(offset: .zero, blur: 22, color: YuzuColors.accent.withAlphaComponent(0.6 * amount).cgColor)
+            context.setShadow(offset: .zero, blur: 20, color: YuzuColors.accent.withAlphaComponent(0.6 * amount).cgColor)
             context.addPath(shape)
             context.setFillColor(YuzuColors.accent.withAlphaComponent(amount).cgColor)
             context.fillPath()
@@ -578,7 +578,7 @@ final class WheelView: NSView {
         let anchorRadius = (innerRadius + outerRadius) / 2
         let anchor = CGPoint(x: center.x + cos(middle) * anchorRadius, y: center.y + sin(middle) * anchorRadius)
         let chord = 2 * anchorRadius * sin(min(stepDegrees, 180) * .pi / 360) - gap - 12
-        drawContents(of: item, at: anchor, width: min(max(chord, 56), 96), amount: amount)
+        drawContents(of: item, at: anchor, width: min(max(chord, 52), 88), amount: amount)
         context.restoreGState()
     }
 
@@ -590,11 +590,11 @@ final class WheelView: NSView {
 
         guard let symbolName = item.symbolName,
               let symbol = NSImage(systemSymbolName: symbolName, accessibilityDescription: item.title)?
-                .withSymbolConfiguration(.init(pointSize: 18, weight: .medium)
+                .withSymbolConfiguration(.init(pointSize: 16.5, weight: .medium)
                     .applying(.init(paletteColors: [blend(palette.symbol, YuzuColors.accentText, amount)]))) else {
             // Formats: just the name, a little larger.
             let text = NSAttributedString(string: item.title, attributes: [
-                .font: NSFont.systemFont(ofSize: 15, weight: .semibold).rounded,
+                .font: NSFont.systemFont(ofSize: 14, weight: .semibold).rounded,
                 .foregroundColor: labelColor, .paragraphStyle: paragraph, .kern: 0.4,
             ])
             let height = text.boundingRect(with: CGSize(width: width, height: 60), options: .usesLineFragmentOrigin).height
@@ -604,7 +604,7 @@ final class WheelView: NSView {
         }
 
         let label = NSAttributedString(string: item.title, attributes: [
-            .font: NSFont.systemFont(ofSize: 11, weight: .semibold), .foregroundColor: labelColor, .paragraphStyle: paragraph,
+            .font: NSFont.systemFont(ofSize: 10.5, weight: .semibold), .foregroundColor: labelColor, .paragraphStyle: paragraph,
         ])
         let labelHeight = label.boundingRect(with: CGSize(width: width, height: 40), options: .usesLineFragmentOrigin).height
         let size = symbol.size
@@ -644,10 +644,10 @@ final class WheelView: NSView {
         paragraph.alignment = .center
         let width = knobRadius * 1.6
         let primaryText = NSAttributedString(string: primary, attributes: [
-            .font: NSFont.systemFont(ofSize: 13, weight: .semibold), .foregroundColor: palette.knobTitle, .paragraphStyle: paragraph,
+            .font: NSFont.systemFont(ofSize: 12.5, weight: .semibold), .foregroundColor: palette.knobTitle, .paragraphStyle: paragraph,
         ])
         let secondaryText = NSAttributedString(string: secondary, attributes: [
-            .font: NSFont.systemFont(ofSize: 10, weight: .medium), .foregroundColor: palette.knobSubtitle, .paragraphStyle: paragraph,
+            .font: NSFont.systemFont(ofSize: 9.5, weight: .medium), .foregroundColor: palette.knobSubtitle, .paragraphStyle: paragraph,
         ])
         let primaryHeight = primaryText.boundingRect(with: CGSize(width: width, height: 40), options: .usesLineFragmentOrigin).height
         let secondaryHeight = secondaryText.boundingRect(with: CGSize(width: width, height: 30), options: .usesLineFragmentOrigin).height
