@@ -52,6 +52,12 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Wheel") {
+                Picker("Appearance", selection: $settings.wheelStyle) {
+                    ForEach(WheelStyle.allCases, id: \.self) { Text($0.displayName).tag($0) }
+                }
+            }
+
             Section("Conversion") {
                 Picker("Quality", selection: $settings.quality) {
                     ForEach(Quality.allCases, id: \.self) { Text($0.displayName).tag($0) }

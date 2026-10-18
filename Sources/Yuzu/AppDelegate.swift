@@ -29,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if enabled { monitor.start() } else { monitor.stop(); wheel.hide() }
             enabledMenuItem?.state = enabled ? .on : .off
         }.store(in: &cancellables)
+        settings.$wheelStyle.sink { [weak self] style in self?.wheel.style = style }.store(in: &cancellables)
         settings.$playsSounds.sink { [weak self] sounds in
             self?.wheel.playsSounds = sounds
             self?.jobs.playsSounds = sounds

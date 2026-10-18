@@ -14,6 +14,7 @@ final class AppSettings: ObservableObject {
     @Published var quality: Quality { didSet { defaults.set(quality.rawValue, forKey: "quality") } }
     @Published var preserveMetadata: Bool { didSet { defaults.set(preserveMetadata, forKey: "preserveMetadata") } }
     @Published var playsSounds: Bool { didSet { defaults.set(playsSounds, forKey: "playsSounds") } }
+    @Published var wheelStyle: WheelStyle { didSet { defaults.set(wheelStyle.rawValue, forKey: "wheelStyle") } }
     @Published var hasCompletedWelcome: Bool { didSet { defaults.set(hasCompletedWelcome, forKey: "hasCompletedWelcome") } }
     @Published private(set) var bindings: [WheelKind: ModifierSet]
 
@@ -29,6 +30,7 @@ final class AppSettings: ObservableObject {
         quality = Quality(rawValue: defaults.string(forKey: "quality") ?? "") ?? .balanced
         preserveMetadata = defaults.bool(forKey: "preserveMetadata")
         playsSounds = defaults.bool(forKey: "playsSounds")
+        wheelStyle = WheelStyle(rawValue: defaults.string(forKey: "wheelStyle") ?? "") ?? .light
         hasCompletedWelcome = defaults.bool(forKey: "hasCompletedWelcome")
         var bindings: [WheelKind: ModifierSet] = [:]
         for kind in WheelKind.allCases {
