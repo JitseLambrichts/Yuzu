@@ -5,6 +5,8 @@
 **Convert, compress and share files without opening an app.**
 Drag a file, tap a key, drop it on the wheel. Everything happens offline on your Mac.
 
+<a href="https://github.com/JitseLambrichts/Yuzu/releases/latest/download/Yuzu.zip"><img alt="Download Yuzu for Mac" src="https://img.shields.io/badge/Download_for_Mac-Yuzu.zip-FACC21?style=for-the-badge&logo=apple&logoColor=white&labelColor=1F1C14"></a>
+
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)
 ![Apple silicon](https://img.shields.io/badge/Apple%20silicon-arm64-black)
 ![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
@@ -71,7 +73,22 @@ the rest.
 
 ## Installation
 
-There are no prebuilt releases yet, so build Yuzu from source.
+### Download
+
+1. [Download Yuzu.zip](https://github.com/JitseLambrichts/Yuzu/releases/latest/download/Yuzu.zip)
+   (macOS 14 or later on Apple silicon).
+2. Double-click the zip to unpack it and drag `Yuzu.app` into your Applications folder.
+3. Open Yuzu. macOS asks you to allow it the first time; see
+   [Opening Yuzu for the first time](#opening-yuzu-for-the-first-time).
+4. For audio, video and WebP, install FFmpeg and libwebp with [Homebrew](https://brew.sh):
+
+   ```bash
+   brew install ffmpeg webp
+   ```
+
+Yuzu lives in the menu bar, so it doesn't show up in the Dock.
+
+### Build from source
 
 **Requirements**
 
@@ -104,8 +121,8 @@ running the script.
 ### Opening Yuzu for the first time
 
 Yuzu is signed ad hoc but not notarized by Apple (notarization needs a paid Apple Developer
-account). A copy you build yourself usually opens straight away, but a copy that was
-downloaded or sent to you gets blocked the first time with a message like
+account). A copy you build yourself usually opens straight away, but the downloaded app gets
+blocked the first time with a message like
 *"Apple could not verify “Yuzu” is free of malware"*. You only need to allow it once.
 
 **macOS 15 Sequoia and later**
@@ -162,7 +179,8 @@ Sources/
 Tests/
 └── YuzuCoreTests/   Swift Testing suite
 scripts/
-└── build-app.sh     Builds and optionally installs Yuzu.app
+├── build-app.sh     Builds and optionally installs Yuzu.app
+└── release.sh       Packages Yuzu.zip and optionally publishes a GitHub release
 ```
 
 ## Roadmap
