@@ -1,6 +1,6 @@
 <div align="center">
 
-# Yuzu
+# <img src="docs/images/logo.png" alt="" width="34"> Yuzu
 
 **Convert, compress and share files without opening an app.**
 Drag a file, tap a key, drop it on the wheel. Everything happens offline on your Mac.
