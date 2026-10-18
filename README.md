@@ -96,11 +96,40 @@ scripts/build-app.sh --install
 ```
 
 This builds a release version, signs it ad hoc and copies it to `/Applications`. Without
-`--install` the app ends up in `build/Yuzu.app`. Because the app isn't notarized, macOS may
-ask you to confirm the first launch: right-click `Yuzu.app` and choose **Open**.
+`--install` the app ends up in `build/Yuzu.app`.
 
 To bundle your own static `ffmpeg`/`cwebp` builds, put them in `vendor/Tools/` before
 running the script.
+
+### Opening Yuzu for the first time
+
+Yuzu is signed ad hoc but not notarized by Apple (notarization needs a paid Apple Developer
+account). A copy you build yourself usually opens straight away, but a copy that was
+downloaded or sent to you gets blocked the first time with a message like
+*"Apple could not verify “Yuzu” is free of malware"*. You only need to allow it once.
+
+**macOS 15 Sequoia and later**
+
+1. Open `Yuzu.app`. When the warning appears, click **Done**.
+2. Open **System Settings → Privacy & Security** and scroll down to **Security**.
+3. Next to *"“Yuzu” was blocked to protect your Mac"*, click **Open Anyway**. The button shows
+   up for about an hour after you tried to open the app.
+4. Confirm with your password or Touch ID, then click **Open Anyway** once more.
+
+**macOS 14 Sonoma**
+
+Right-click `Yuzu.app` in Finder, choose **Open**, then click **Open** in the dialog.
+
+**Or use Terminal**
+
+Removing the quarantine flag works on every version:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Yuzu.app
+```
+
+Yuzu has no network access and its full source code is in this repository, so you can check
+what you're running, or build it yourself instead.
 
 ## Development
 
