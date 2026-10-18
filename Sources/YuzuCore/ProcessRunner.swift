@@ -1,0 +1,159 @@
+import Foundation
+
+public enum YuzuError: LocalizedError, Equatable {
+    case unsupported(String)
+    case missingTool(String)
+    case processFailed(tool: String, message: String)
+    case unreadable(String)
+    case writeFailed(String)
+    case nothingToDo(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .unsupported(let detail): return "Niet ondersteund: \(detail)"
+        case .missingTool(let tool): return "\(tool) is niet gevonden. Installeer het met Homebrew (brew install \(tool)) of leg het in Yuzu.app/Contents/Resources/Tools."
+        case .processFailed(let tool, let message): return "\(tool) is mislukt: \(message)"
+        case .unreadable(let name): return "Kon \(name) niet lezen."
+        case .writeFailed(let name): return "Kon \(name) niet schrijven."
+        case .nothingToDo(let detail): return detail
+        }
+    }
+}
+
+/// Zoekt externe hulpprogramma's: eerst in de app-bundel, daarna in de gangbare Homebrew-paden.
+public enum ToolLocator {
+    public static func find(_ name: String) -> URL? {
+        var candidates: [URL] = []
+        if let resources = Bundle.main.resourceURL {
+            candidates.append(resources.appendingPathComponent("Tools/\(name)"))
+        }
+        candidates += ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"].map {
+            URL(fileURLWithPath: $0).appendingPathComponent(name)
+        }
+        return candidates.first { FileManager.default.isExecutableFile(atPath: $0.path) }
+    }
+
+    public static func require(_ name: String) throws -> URL {
+        guard let url = find(name) else { throw YuzuError.missingTool(name) }
+        return url
+    }
+}
+
+public struct ProcessResult: Sendable {
+    public var status: Int32
+    public var stdout: String
+    public var stderr: String
+}
+
+/// Verzamelt pipe-uitvoer thread-safe en splitst die optioneel in regels.
+private final class OutputCollector: @unchecked Sendable {
+    private let lock = NSLock()
+    private var data = Data()
+    private var pending = Data()
+    private let onLine: ((String) -> Void)?
+
+    init(onLine: ((String) -> Void)?) {
+        self.onLine = onLine
+    }
+
+    func append(_ chunk: Data) {
+        guard !chunk.isEmpty else { return }
+        lock.lock()
+        data.append(chunk)
+        var lines: [String] = []
+        if onLine != nil {
+            pending.append(chunk)
+            while let newline = pending.firstIndex(of: 0x0A) {
+                let line = pending[pending.startIndex..<newline]
+                lines.append(String(decoding: line, as: UTF8.self))
+                pending.removeSubrange(pending.startIndex...newline)
+            }
+        }
+        lock.unlock()
+        lines.forEach { onLine?($0) }
+    }
+
+    var string: String {
+        lock.lock()
+        defer { lock.unlock() }
+        return String(decoding: data, as: UTF8.self)
+    }
+}
+
+public enum ProcessRunner {
+    /// Start een proces en wacht asynchroon op het einde. Annuleren van de Task beëindigt het proces.
+    @discardableResult
+    public static func run(_ executable: URL,
+                           _ arguments: [String],
+                           currentDirectory: URL? = nil,
+                           standardOutputFile: URL? = nil,
+                           onStdoutLine: ((String) -> Void)? = nil) async throws -> ProcessResult {
+        let process = Process()
+        process.executableURL = executable
+        process.arguments = arguments
+        process.standardInput = FileHandle.nullDevice
+        if let currentDirectory { process.currentDirectoryURL = currentDirectory }
+
+        let stdout = OutputCollector(onLine: onStdoutLine)
+        let stderr = OutputCollector(onLine: nil)
+        let errPipe = Pipe()
+        process.standardError = errPipe
+        errPipe.fileHandleForReading.readabilityHandler = { stderr.append($0.availableData) }
+
+        let outFile: FileHandle? = try standardOutputFile.map { url in
+            FileManager.default.createFile(atPath: url.path, contents: nil)
+            return try FileHandle(forWritingTo: url)
+        }
+        let outPipe: Pipe? = outFile == nil ? Pipe() : nil
+        if let outFile {
+            process.standardOutput = outFile
+        } else if let outPipe {
+            process.standardOutput = outPipe
+            outPipe.fileHandleForReading.readabilityHandler = { stdout.append($0.availableData) }
+        }
+
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ProcessResult, Error>) in
+                process.terminationHandler = { finished in
+                    errPipe.fileHandleForReading.readabilityHandler = nil
+                    stderr.append(errPipe.fileHandleForReading.readDataToEndOfFile())
+                    if let outPipe {
+                        outPipe.fileHandleForReading.readabilityHandler = nil
+                        stdout.append(outPipe.fileHandleForReading.readDataToEndOfFile())
+                    }
+                    try? outFile?.close()
+                    continuation.resume(returning: ProcessResult(status: finished.terminationStatus,
+                                                                 stdout: stdout.string,
+                                                                 stderr: stderr.string))
+                }
+                do {
+                    try process.run()
+                } catch {
+                    errPipe.fileHandleForReading.readabilityHandler = nil
+                    outPipe?.fileHandleForReading.readabilityHandler = nil
+                    continuation.resume(throwing: error)
+                }
+            }
+        } onCancel: {
+            if process.isRunning { process.terminate() }
+        }
+    }
+
+    /// Zoals `run`, maar gooit een fout bij een exit-status ongelijk aan 0.
+    @discardableResult
+    public static func runChecked(_ executable: URL,
+                                  _ arguments: [String],
+                                  currentDirectory: URL? = nil,
+                                  standardOutputFile: URL? = nil,
+                                  onStdoutLine: ((String) -> Void)? = nil) async throws -> ProcessResult {
+        let result = try await run(executable, arguments, currentDirectory: currentDirectory,
+                                   standardOutputFile: standardOutputFile, onStdoutLine: onStdoutLine)
+        try Task.checkCancellation()
+        guard result.status == 0 else {
+            let lastLines = result.stderr.split(separator: "\n").suffix(3).joined(separator: " ")
+            throw YuzuError.processFailed(tool: executable.lastPathComponent,
+                                          message: lastLines.isEmpty ? "exit-status \(result.status)" : lastLines)
+        }
+        return result
+    }
+}
