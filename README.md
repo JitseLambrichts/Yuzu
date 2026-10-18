@@ -93,7 +93,7 @@ There are no prebuilt releases yet, so build Yuzu from source.
 **Build and install**
 
 ```bash
-git clone https://github.com/<owner>/Yuzu.git
+git clone https://github.com/JitseLambrichts/Yuzu.git
 cd Yuzu
 scripts/build-app.sh --install
 ```
