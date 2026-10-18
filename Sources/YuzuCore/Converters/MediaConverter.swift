@@ -35,6 +35,14 @@ public enum FFmpegArguments {
                                   preserveMetadata: Bool, encoders: Set<String> = []) -> [String] {
         var args = base(input: input)
         args += ["-map_metadata", preserveMetadata ? "0" : "-1"]
+        args += codecArguments(for: format, quality: quality, encoders: encoders)
+        args.append(output.path)
+        return args
+    }
+
+    /// Codec-argumenten (video en audio) voor een doelcontainer.
+    public static func codecArguments(for format: ConversionFormat, quality: Quality, encoders: Set<String> = []) -> [String] {
+        var args: [String] = []
         let videoQuality: String
         switch quality {
         case .compact: videoQuality = "45"
@@ -65,7 +73,41 @@ public enum FFmpegArguments {
             args += ["-vn"]
             args += audioCodec(for: format, quality: quality, encoders: encoders)
         }
+        return args
+    }
+
+    /// Een stuk uit audio of video. `-ss` vóór `-i` zoekt snel; bij hercoderen blijft de start toch frame-exact.
+    public static func trim(input: URL, output: URL, options: TrimOptions, format: ConversionFormat?, isVideo: Bool,
+                            encoders: Set<String> = []) -> [String] {
+        var args = ["-hide_banner", "-nostdin", "-y", "-progress", "pipe:1", "-nostats",
+                    "-ss", Timecode.ffmpeg(options.start), "-t", Timecode.ffmpeg(options.duration), "-i", input.path,
+                    "-map_metadata", "0"]
+        if !options.reencode {
+            args += ["-map", "0:v?", "-map", "0:a?", "-c", "copy", "-avoid_negative_ts", "make_zero"]
+        } else if isVideo {
+            args += codecArguments(for: format ?? .mp4, quality: .high, encoders: encoders)
+        } else {
+            args += ["-vn"] + audioCodec(for: format ?? .m4a, quality: .high, encoders: encoders)
+        }
         args.append(output.path)
+        return args
+    }
+
+    /// Video naar MP4 (HEVC) met een vaste bitrate uit `CompressionPlanner`.
+    public static func compressVideo(input: URL, output: URL, plan: CompressionPlanner.VideoPlan) -> [String] {
+        let kbps = max(plan.videoBitrate / 1000, 1)
+        var args = base(input: input) + ["-map_metadata", "0"]
+        if let maxHeight = plan.maxHeight {
+            args += ["-vf", "scale=-2:'min(ih,\(maxHeight))'"]
+        }
+        args += ["-c:v", "hevc_videotoolbox", "-b:v", "\(kbps)k", "-maxrate", "\(kbps * 11 / 10)k", "-bufsize", "\(kbps * 2)k",
+                 "-tag:v", "hvc1"]
+        if plan.audioBitrate > 0 {
+            args += ["-c:a", "aac", "-b:a", "\(plan.audioBitrate / 1000)k"]
+        } else {
+            args += ["-an"]
+        }
+        args += ["-movflags", "+faststart", output.path]
         return args
     }
 }

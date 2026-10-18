@@ -13,9 +13,10 @@ public struct ToolResult: Sendable {
     }
 }
 
-/// Voert de tools uit het ⌘-wiel uit met vaste, verstandige standaardwaarden.
+/// Voert de tools uit het ⌘-wiel uit. Tools met een optiepaneel krijgen de keuzes via `options`;
+/// zonder opties gebruiken ze verstandige standaardwaarden (of weigeren ze als dat niet kan).
 public enum FileToolEngine {
-    public static func run(_ tool: FileTool, sources: [URL], settings: ConversionSettings = .init(),
+    public static func run(_ tool: FileTool, sources: [URL], options: FileToolOptions? = nil, settings: ConversionSettings = .init(),
                            progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws -> ToolResult {
         guard tool.applies(to: sources.map(FileCategory.of)) else {
             throw YuzuError.unsupported("\(tool.displayName) voor deze selectie")
@@ -39,19 +40,24 @@ public enum FileToolEngine {
                 let step: @Sendable (Double) -> Void = { fraction in
                     progress((Double(index) + fraction) / Double(sources.count))
                 }
-                outputs += try await runSingle(tool, source: source, settings: settings, progress: step)
+                outputs += try await runSingle(tool, source: source, options: options, settings: settings, progress: step)
             }
             return ToolResult(outputs: outputs)
         }
     }
 
-    static func runSingle(_ tool: FileTool, source: URL, settings: ConversionSettings,
+    static func runSingle(_ tool: FileTool, source: URL, options: FileToolOptions?, settings: ConversionSettings,
                           progress: @escaping @Sendable (Double) -> Void) async throws -> [URL] {
         let category = FileCategory.of(source)
         let ext = source.pathExtension.lowercased()
+        var compression = CompressionTarget.automatic
+        if case .compress(let chosen) = options { compression = chosen.target }
+        let targetBytes = compression.targetBytes(forOriginal: Int64(fileSize(source)))
         switch (tool, category) {
         case (.compress, .image):
-            return [try compressImage(source)]
+            return [try compressImage(source, targetBytes: targetBytes)]
+        case (.compress, .video) where targetBytes != nil:
+            return [try await compressVideo(source, targetBytes: targetBytes!, progress: progress)]
         case (.compress, .video):
             let output = OutputNaming.output(for: source, fileExtension: "mp4", suffix: "gecomprimeerd")
             let args = FFmpegArguments.base(input: source) + [
@@ -64,6 +70,12 @@ public enum FileToolEngine {
             let output = OutputNaming.output(for: source, fileExtension: "pdf", suffix: "gecomprimeerd")
             try PDFConverter.compress(source, into: output)
             return [try keepIfSmaller(output, than: source)]
+        case (.cropImage, .image):
+            guard case .crop(let crop) = options else { throw YuzuError.nothingToDo("Kies eerst een kader om bij te snijden.") }
+            return [try cropImage(source, options: crop, settings: settings)]
+        case (.trimVideo, .video), (.trimAudio, .audio):
+            guard case .trim(let trim) = options else { throw YuzuError.nothingToDo("Kies eerst een begin en een eind.") }
+            return [try await self.trim(source, options: trim, isVideo: category == .video, progress: progress)]
         case (.removeMetadata, .image):
             return [try stripImageMetadata(source)]
         case (.removeMetadata, .pdf):
@@ -101,17 +113,24 @@ public enum FileToolEngine {
     }
 
     static func runMedia(_ arguments: [String], source: URL, output: URL, progress: @escaping @Sendable (Double) -> Void) async throws {
+        try await runMedia(arguments, duration: await MediaConverter.duration(of: source), output: output, progress: progress)
+    }
+
+    static func runMedia(_ arguments: [String], duration: Double?, output: URL, progress: @escaping @Sendable (Double) -> Void) async throws {
         do {
-            try await MediaConverter.runFFmpeg(arguments, duration: await MediaConverter.duration(of: source), progress: progress)
+            try await MediaConverter.runFFmpeg(arguments, duration: duration, progress: progress)
         } catch {
             try? FileManager.default.removeItem(at: output)
             throw error
         }
     }
 
+    static func fileSize(_ url: URL) -> Int {
+        (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+    }
+
     static func keepIfSmaller(_ output: URL, than source: URL) throws -> URL {
-        let size = { (url: URL) in (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0 }
-        if size(output) >= size(source) {
+        if fileSize(output) >= fileSize(source) {
             try? FileManager.default.removeItem(at: output)
             throw YuzuError.nothingToDo("\(source.lastPathComponent) is al zo klein als het kan worden.")
         }
@@ -119,14 +138,21 @@ public enum FileToolEngine {
     }
 
     /// Lossy formaten opnieuw coderen; lossless formaten naar JPEG (zonder alfa) of HEIC (met alfa).
-    static func compressImage(_ source: URL) throws -> URL {
+    /// Met `targetBytes` zoekt het de hoogste kwaliteit die past en verkleint het zo nodig de afmetingen.
+    static func compressImage(_ source: URL, targetBytes: Int64? = nil) throws -> URL {
         let (image, properties) = try ImageConverter.loadOriented(source)
         var format = ConversionFormat.matching(source) ?? .jpg
         if ![.jpg, .heic, .avif].contains(format) || !ImageCapabilities.canWriteNatively(format) {
             format = image.hasAlpha && ImageCapabilities.canWriteNatively(.heic) ? .heic : .jpg
         }
         let output = OutputNaming.output(for: source, fileExtension: format.fileExtension, suffix: "gecomprimeerd")
-        try ImageConverter.write(image, properties: properties, format: format, quality: 0.55, to: output)
+        if let targetBytes {
+            let data = try ImageSizeFitter.encode(image, properties: properties, format: format, targetBytes: targetBytes,
+                                                  name: source.lastPathComponent)
+            do { try data.write(to: output, options: .withoutOverwriting) } catch { throw YuzuError.writeFailed(output.lastPathComponent) }
+        } else {
+            try ImageConverter.write(image, properties: properties, format: format, quality: 0.55, to: output)
+        }
         return try keepIfSmaller(output, than: source)
     }
 

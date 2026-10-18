@@ -6,7 +6,7 @@ Sleep een bestand, tik tijdens het slepen een toets en laat het los op het wiel.
 | Toets (standaard) | Wiel | Inhoud |
 |---|---|---|
 | ⇧ Shift | Converteren | doelformaten die bij de selectie passen |
-| ⌘ Command | Tools | comprimeren, metadata weg, PDF maken/samenvoegen/splitsen, dempen, normaliseren, uitpakken, QR lezen |
+| ⌘ Command | Tools | comprimeren (automatisch, percentage of doelgrootte), bijsnijden, inkorten, metadata weg, PDF maken/samenvoegen/splitsen, dempen, normaliseren, uitpakken, QR lezen |
 | ⌃ Control | Acties | AirDrop, Float, kopiëren, verplaatsen, pad kopiëren, Terminal |
 
 De uitvoer komt naast het origineel; er wordt nooit iets overschreven.
@@ -37,8 +37,8 @@ scripts/build-app.sh          # bouwt build/Yuzu.app
 scripts/build-app.sh --install  # en kopieert naar /Applications
 ```
 
-Ontwikkelhulp: `.build/debug/Yuzu --render-previews /tmp/yuzu` schrijft PNG's van het wiel
-en de instellingen (licht en donker).
+Ontwikkelhulp: `.build/debug/Yuzu --render-previews /tmp/yuzu` schrijft PNG's van het wiel,
+de instellingen en de optiepanelen (licht en donker).
 
 Wat de sleepdetectie ziet, kun je volgen met:
 
@@ -54,6 +54,6 @@ log stream --predicate 'subsystem == "app.yuzu.Yuzu"' --level info
 
 ## Nog niet gebouwd
 
-Zie fase 4 en 6 in [PLAN.md](PLAN.md): editors met eigen venster (bijsnijden, annoteren,
-fotobewerking, collage, redactie, trimmen/splitsen met tijdlijn), PowerPoint, Pages, EPUB,
+Zie fase 4 en 6 in [PLAN.md](PLAN.md): editors met eigen venster (annoteren, fotobewerking,
+collage, redactie, splitsen/samenvoegen van video), PowerPoint, Pages, EPUB,
 ODS, onboarding met oefenwiel en sandbox/App Store-distributie.

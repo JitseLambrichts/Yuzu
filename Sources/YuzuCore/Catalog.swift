@@ -31,13 +31,16 @@ public struct ConversionSettings: Sendable, Equatable {
     }
 }
 
-/// Tools uit het ⌘-wiel. Elke tool werkt zonder extra venster met verstandige standaardwaarden.
+/// Tools uit het ⌘-wiel. De meeste werken zonder venster; tools met `hasOptionsPanel` vragen eerst om instellingen.
 public enum FileTool: String, CaseIterable, Sendable, Codable {
-    case compress, removeMetadata, createPDF, mergePDF, splitPDF, muteVideo, normalizeAudio, extractArchive, readQRCode
+    case compress, cropImage, trimVideo, trimAudio, removeMetadata, createPDF, mergePDF, splitPDF, muteVideo, normalizeAudio,
+         extractArchive, readQRCode
 
     public var displayName: String {
         switch self {
         case .compress: return "Comprimeer"
+        case .cropImage: return "Bijsnijden"
+        case .trimVideo, .trimAudio: return "Inkorten"
         case .removeMetadata: return "Metadata weg"
         case .createPDF: return "Maak PDF"
         case .mergePDF: return "Voeg samen"
@@ -52,6 +55,9 @@ public enum FileTool: String, CaseIterable, Sendable, Codable {
     public var symbolName: String {
         switch self {
         case .compress: return "arrow.down.right.and.arrow.up.left"
+        case .cropImage: return "crop"
+        case .trimVideo: return "timeline.selection"
+        case .trimAudio: return "waveform.path"
         case .removeMetadata: return "eye.slash"
         case .createPDF: return "doc.richtext"
         case .mergePDF: return "doc.on.doc"
@@ -63,12 +69,23 @@ public enum FileTool: String, CaseIterable, Sendable, Codable {
         }
     }
 
+    /// Of de tool na de drop een optiepaneel opent (en dus `FileToolOptions` verwacht).
+    public var hasOptionsPanel: Bool {
+        switch self {
+        case .compress, .cropImage, .trimVideo, .trimAudio: return true
+        default: return false
+        }
+    }
+
     /// Of de tool op deze selectie van toepassing is.
     public func applies(to categories: [FileCategory]) -> Bool {
         guard !categories.isEmpty else { return false }
         func all(_ allowed: Set<FileCategory>) -> Bool { categories.allSatisfy(allowed.contains) }
         switch self {
         case .compress: return all([.image, .video, .pdf])
+        case .cropImage: return all([.image])
+        case .trimVideo: return categories.count == 1 && all([.video])
+        case .trimAudio: return categories.count == 1 && all([.audio])
         case .removeMetadata: return all([.image, .audio, .video, .pdf])
         case .createPDF: return all([.image])
         case .mergePDF: return categories.count >= 2 && all([.pdf])

@@ -35,6 +35,23 @@ enum TestFiles {
         return url
     }
 
+    /// Een PNG met willekeurige pixels: groot en slecht comprimeerbaar.
+    static func makeNoiseImage(in dir: URL, width: Int = 600, height: Int = 400) throws -> URL {
+        var generator = SystemRandomNumberGenerator()
+        var bytes = [UInt8](repeating: 255, count: width * height * 4)
+        for index in bytes.indices where index % 4 != 3 {
+            bytes[index] = UInt8.random(in: 0...255, using: &generator)
+        }
+        let context = CGContext(data: &bytes, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                                space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+        let image = context.makeImage()!
+        let url = dir.appendingPathComponent("ruis.png")
+        let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)!
+        CGImageDestinationAddImage(destination, image, nil)
+        precondition(CGImageDestinationFinalize(destination))
+        return url
+    }
+
     static func write(_ text: String, to dir: URL, name: String) throws -> URL {
         let url = dir.appendingPathComponent(name)
         try text.write(to: url, atomically: true, encoding: .utf8)

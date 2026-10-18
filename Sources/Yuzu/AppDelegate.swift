@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let jobs = JobCenter()
     private let floatShelf = FloatShelfController()
     private let settingsWindow = SettingsWindowController()
+    private let toolOptions = ToolOptionsPanelController()
     private var statusItem: NSStatusItem?
     private var enabledMenuItem: NSMenuItem?
     private var cancellables: Set<AnyCancellable> = []
@@ -62,6 +63,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switch item.payload {
         case .convert(let format):
             convert(urls, to: format)
+        case .tool(let tool) where tool.hasOptionsPanel:
+            toolOptions.show(tool, urls: urls) { [weak self] options in self?.run(tool, on: urls, options: options) }
         case .tool(let tool):
             run(tool, on: urls)
         case .action(let action):
@@ -77,11 +80,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func run(_ tool: FileTool, on urls: [URL]) {
+    private func run(_ tool: FileTool, on urls: [URL], options: FileToolOptions? = nil) {
         let conversionSettings = settings.conversionSettings
         let subject = urls.count == 1 ? urls[0].lastPathComponent : "\(urls.count) bestanden"
         jobs.start(title: "\(tool.displayName): \(subject)") { progress in
-            let result = try await FileToolEngine.run(tool, sources: urls, settings: conversionSettings, progress: progress)
+            let result = try await FileToolEngine.run(tool, sources: urls, options: options, settings: conversionSettings,
+                                                    progress: progress)
             if let message = result.message {
                 await MainActor.run {
                     NSPasteboard.general.clearContents()

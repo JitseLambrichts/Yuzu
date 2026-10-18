@@ -179,18 +179,28 @@ import Testing
 
 @Suite(.enabled(if: ToolLocator.find("ffmpeg") != nil))
 struct MediaTests {
-    static func makeTone(in dir: URL) async throws -> URL {
+    static func makeTone(in dir: URL, duration: Int = 1) async throws -> URL {
         let url = dir.appendingPathComponent("tone.wav")
         try await ProcessRunner.runChecked(try ToolLocator.require("ffmpeg"),
-                                           ["-hide_banner", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", url.path])
+                                           ["-hide_banner", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=\(duration)", url.path])
         return url
     }
 
-    static func makeVideo(in dir: URL) async throws -> URL {
+    static func makeVideo(in dir: URL, duration: Int = 1) async throws -> URL {
         let url = dir.appendingPathComponent("clip.mov")
         try await ProcessRunner.runChecked(try ToolLocator.require("ffmpeg"),
-                                           ["-hide_banner", "-y", "-f", "lavfi", "-i", "testsrc=size=320x240:rate=15:duration=1",
-                                            "-f", "lavfi", "-i", "sine=duration=1", "-shortest", "-c:v", "mpeg4", "-c:a", "aac", url.path])
+                                           ["-hide_banner", "-y", "-f", "lavfi", "-i", "testsrc=size=320x240:rate=15:duration=\(duration)",
+                                            "-f", "lavfi", "-i", "sine=duration=\(duration)", "-shortest", "-c:v", "mpeg4", "-c:a", "aac", url.path])
+        return url
+    }
+
+    /// Ruis comprimeert slecht, dus de doelgrootte wordt echt op de proef gesteld.
+    static func makeNoiseVideo(in dir: URL) async throws -> URL {
+        let url = dir.appendingPathComponent("ruis.mov")
+        try await ProcessRunner.runChecked(try ToolLocator.require("ffmpeg"),
+                                           ["-hide_banner", "-y", "-f", "lavfi", "-i", "testsrc=size=640x360:rate=25:duration=3",
+                                            "-f", "lavfi", "-i", "sine=duration=3", "-shortest", "-vf", "noise=alls=60:allf=t",
+                                            "-c:v", "mpeg4", "-q:v", "2", "-c:a", "aac", url.path])
         return url
     }
 
