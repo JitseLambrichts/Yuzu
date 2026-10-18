@@ -101,7 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setUpStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "circle.grid.cross", accessibilityDescription: "Yuzu")
+        item.button?.image = Self.menuBarIcon()
         let menu = NSMenu()
 
         let header = NSMenuItem(title: "Drag a file and tap ⇧, ⌘ or ⌃", action: nil, keyEquivalent: "")
@@ -128,6 +128,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         item.menu = menu
         statusItem = item
+    }
+
+    /// A simplified yuzu slice from the app icon: rind, eight segments and the hub, as a template image.
+    private static func menuBarIcon() -> NSImage {
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { rect in
+            let center = CGPoint(x: rect.midX, y: rect.midY)
+            NSColor.black.set()
+            let rind = NSBezierPath(ovalIn: rect.insetBy(dx: 1.25, dy: 1.25))
+            rind.lineWidth = 1.3
+            rind.stroke()
+            NSBezierPath(ovalIn: CGRect(x: center.x - 5.6, y: center.y - 5.6, width: 11.2, height: 11.2)).fill()
+
+            // Cut the flesh into segments around a hollow hub.
+            NSGraphicsContext.current?.compositingOperation = .clear
+            let spokes = NSBezierPath()
+            for index in 0..<4 {
+                let angle = CGFloat(index) * .pi / 4
+                let dx = cos(angle) * 6, dy = sin(angle) * 6
+                spokes.move(to: CGPoint(x: center.x - dx, y: center.y - dy))
+                spokes.line(to: CGPoint(x: center.x + dx, y: center.y + dy))
+            }
+            spokes.lineWidth = 0.9
+            spokes.stroke()
+            NSBezierPath(ovalIn: CGRect(x: center.x - 1.6, y: center.y - 1.6, width: 3.2, height: 3.2)).fill()
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = "Yuzu"
+        return image
     }
 
     @objc private func toggleEnabled() {

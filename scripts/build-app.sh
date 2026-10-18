@@ -15,6 +15,16 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/Tools"
 cp "$BIN" "$APP/Contents/MacOS/Yuzu"
 
+# App icon: every size of the iconset from the 1024 px source.
+ICONSET="$(mktemp -d)/AppIcon.iconset"
+mkdir -p "$ICONSET"
+for size in 16 32 128 256 512; do
+  sips -z $size $size "$ROOT/Resources/AppIcon.png" --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
+  sips -z $((size * 2)) $((size * 2)) "$ROOT/Resources/AppIcon.png" --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
+done
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+rm -rf "${ICONSET:h}"
+
 # Optional: bundle self-built, static ffmpeg/cwebp binaries from vendor/Tools.
 if [[ -d "$ROOT/vendor/Tools" ]]; then
   cp -R "$ROOT/vendor/Tools/." "$APP/Contents/Resources/Tools/"
@@ -28,6 +38,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleDevelopmentRegion</key><string>en</string>
   <key>CFBundleDisplayName</key><string>Yuzu</string>
   <key>CFBundleExecutable</key><string>Yuzu</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleIdentifier</key><string>app.yuzu.Yuzu</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>Yuzu</string>
