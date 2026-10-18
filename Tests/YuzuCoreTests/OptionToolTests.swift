@@ -82,7 +82,7 @@ import Testing
         let options = CropOptions(rect: CGRect(x: 0, y: 0, width: 500, height: 500), referenceSize: size, aspectRatio: 1)
         #expect(options.pixelRect(for: size) == CGRect(x: 0, y: 0, width: 500, height: 500))
         #expect(options.pixelRect(for: CGSize(width: 2000, height: 1000)) == CGRect(x: 0, y: 0, width: 1000, height: 1000))
-        // Andere verhouding: het kader blijft vierkant en binnen de afbeelding.
+        // Different aspect ratio: the area stays square and inside the image.
         let portrait = options.pixelRect(for: CGSize(width: 600, height: 900))
         #expect(portrait.width == portrait.height)
         #expect(portrait.maxX <= 600 && portrait.maxY <= 900)
@@ -95,10 +95,10 @@ import Testing
         let source = try TestFiles.makeImage(in: dir)
         let options = CropOptions(rect: CGRect(x: 0, y: 10, width: 60, height: 50), referenceSize: CGSize(width: 120, height: 80))
         let output = try #require(try await FileToolEngine.run(.cropImage, sources: [source], options: .crop(options)).outputs.first)
-        #expect(output.lastPathComponent == "sample bijgesneden.png")
+        #expect(output.lastPathComponent == "sample cropped.png")
         let (image, _) = try ImageConverter.loadOriented(output)
         #expect(image.width == 60 && image.height == 50)
-        // De linkerhelft van het testbeeld is geel.
+        // The left half of the test image is yellow.
         let rep = NSBitmapImageRep(cgImage: image)
         let color = try #require(rep.colorAt(x: 59, y: 49)?.usingColorSpace(.sRGB))
         #expect(color.redComponent > 0.9 && color.blueComponent < 0.2)
@@ -182,7 +182,7 @@ import Testing
     }
 
     @Test func videoPlanSplitsBitrate() throws {
-        // 10 MB voor 60 s ≈ 1,29 Mbit/s totaal.
+        // 10 MB for 60 s ≈ 1.29 Mbit/s in total.
         let plan = try CompressionPlanner.videoPlan(targetBytes: 10_000_000, duration: 60, sourceHeight: 2160, hasAudio: true)
         #expect(plan.audioBitrate == 128_000)
         #expect(plan.videoBitrate == Int(10_000_000.0 * 8 * 0.97 / 60) - 128_000)
@@ -228,7 +228,7 @@ struct OptionMediaTests {
         let clip = try await MediaTests.makeVideo(in: dir, duration: 3)
         let output = try #require(try await FileToolEngine.run(.trimVideo, sources: [clip],
                                                                options: .trim(TrimOptions(start: 0.5, end: 1.5))).outputs.first)
-        #expect(output.lastPathComponent == "clip ingekort.mov")
+        #expect(output.lastPathComponent == "clip trimmed.mov")
         let duration = try #require(await MediaConverter.duration(of: output))
         #expect(abs(duration - 1) < 0.2)
     }

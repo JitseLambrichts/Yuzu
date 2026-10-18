@@ -1,16 +1,16 @@
 import CoreGraphics
 import Foundation
 
-/// Instellingen uit het optiepaneel van een tool (zie `FileTool.hasOptionsPanel`).
+/// Settings from a tool's options panel (see `FileTool.hasOptionsPanel`).
 public enum FileToolOptions: Sendable, Equatable {
     case crop(CropOptions)
     case trim(TrimOptions)
     case compress(CompressionOptions)
 }
 
-// MARK: - Bijsnijden
+// MARK: - Crop
 
-/// Beeldverhouding voor het bijsnijkader.
+/// Aspect ratio for the crop area.
 public enum AspectRatio: Hashable, Sendable, Identifiable {
     case free
     case original
@@ -24,13 +24,13 @@ public enum AspectRatio: Hashable, Sendable, Identifiable {
 
     public var displayName: String {
         switch self {
-        case .free: return "Vrij"
-        case .original: return "Origineel"
+        case .free: return "Free"
+        case .original: return "Original"
         case .ratio(let width, let height): return "\(width):\(height)"
         }
     }
 
-    /// Breedte gedeeld door hoogte, of `nil` als de verhouding vrij is.
+    /// Width divided by height, or `nil` when the ratio is free.
     public func value(for imageSize: CGSize) -> Double? {
         switch self {
         case .free: return nil
@@ -41,10 +41,10 @@ public enum AspectRatio: Hashable, Sendable, Identifiable {
 }
 
 public struct CropOptions: Sendable, Equatable {
-    /// Kader in pixels, oorsprong linksboven, ten opzichte van `referenceSize` (de eerste afbeelding).
+    /// Crop area in pixels, origin at the top left, relative to `referenceSize` (the first image).
     public var rect: CGRect
     public var referenceSize: CGSize
-    /// Breedte/hoogte die per afbeelding wordt afgedwongen; `nil` is vrij.
+    /// Width/height ratio enforced per image; `nil` is free.
     public var aspectRatio: Double?
 
     public init(rect: CGRect, referenceSize: CGSize, aspectRatio: Double? = nil) {
@@ -53,7 +53,7 @@ public struct CropOptions: Sendable, Equatable {
         self.aspectRatio = aspectRatio
     }
 
-    /// Het kader voor een afbeelding van `imageSize`: geschaald vanaf de referentie en zo nodig op verhouding gebracht.
+    /// The crop area for an image of `imageSize`: scaled from the reference and brought to the ratio if needed.
     public func pixelRect(for imageSize: CGSize) -> CGRect {
         guard referenceSize.width > 0, referenceSize.height > 0 else { return CGRect(origin: .zero, size: imageSize) }
         let sx = imageSize.width / referenceSize.width
@@ -66,13 +66,13 @@ public struct CropOptions: Sendable, Equatable {
     }
 }
 
-/// Rekenwerk voor het bijsnijkader. Alle kaders in pixels met de oorsprong linksboven.
+/// Geometry for the crop area. All rectangles are in pixels with the origin at the top left.
 public enum CropGeometry {
     public enum Handle: CaseIterable, Sendable {
         case topLeft, topRight, bottomLeft, bottomRight
     }
 
-    /// Het grootste gecentreerde kader met verhouding `ratio` binnen `size`.
+    /// The largest centered rectangle with ratio `ratio` inside `size`.
     public static func largestRect(ratio: Double?, in size: CGSize) -> CGRect {
         guard let ratio, ratio > 0 else { return CGRect(origin: .zero, size: size) }
         var width = size.width
@@ -84,7 +84,7 @@ public enum CropGeometry {
         return clamp(CGRect(x: (size.width - width) / 2, y: (size.height - height) / 2, width: width, height: height), to: size)
     }
 
-    /// Brengt `rect` op verhouding met (ongeveer) dezelfde oppervlakte en hetzelfde midden, binnen `size`.
+    /// Brings `rect` to the ratio with (roughly) the same area and the same center, inside `size`.
     public static func fit(_ rect: CGRect, ratio: Double, in size: CGSize) -> CGRect {
         guard ratio > 0 else { return rect }
         let area = max(rect.width * rect.height, 1)
@@ -97,7 +97,7 @@ public enum CropGeometry {
         return shiftedInside(fitted, size: size)
     }
 
-    /// Rondt af op hele pixels en houdt het kader binnen de afbeelding (minstens 1×1).
+    /// Rounds to whole pixels and keeps the rectangle inside the image (at least 1×1).
     public static func clamp(_ rect: CGRect, to size: CGSize) -> CGRect {
         let maxWidth = max(size.width.rounded(.down), 1)
         let maxHeight = max(size.height.rounded(.down), 1)
@@ -108,12 +108,12 @@ public enum CropGeometry {
         return CGRect(x: x, y: y, width: width, height: height)
     }
 
-    /// Verschuift het kader zonder het van grootte te veranderen.
+    /// Moves the rectangle without changing its size.
     public static func moved(_ rect: CGRect, by delta: CGSize, in size: CGSize) -> CGRect {
         shiftedInside(rect.offsetBy(dx: delta.width, dy: delta.height), size: size)
     }
 
-    /// Versleept een hoek naar `point`; de tegenoverliggende hoek blijft staan.
+    /// Drags a corner to `point`; the opposite corner stays put.
     public static func resized(_ rect: CGRect, handle: Handle, to point: CGPoint, ratio: Double?,
                                in size: CGSize, minSide: CGFloat = 8) -> CGRect {
         let anchor: CGPoint
@@ -150,12 +150,12 @@ public enum CropGeometry {
     }
 }
 
-// MARK: - Inkorten
+// MARK: - Trim
 
 public struct TrimOptions: Sendable, Equatable {
     public var start: Double
     public var end: Double
-    /// Hercoderen knipt op het exacte frame; zonder hercoderen is het snel maar valt de start op een keyframe.
+    /// Re-encoding cuts on the exact frame; without re-encoding it is fast, but the start snaps to a keyframe.
     public var reencode: Bool
 
     public init(start: Double, end: Double, reencode: Bool = true) {
@@ -166,20 +166,20 @@ public struct TrimOptions: Sendable, Equatable {
 
     public var duration: Double { max(end - start, 0) }
 
-    /// Controleert het bereik tegen de totale duur (als die bekend is).
+    /// Checks the range against the total duration (when known).
     public func validated(totalDuration: Double?) throws -> TrimOptions {
         var result = self
         result.start = max(start, 0)
         if let totalDuration { result.end = min(end, totalDuration) }
-        guard result.duration >= 0.05 else { throw YuzuError.nothingToDo("Het gekozen stuk is te kort.") }
+        guard result.duration >= 0.05 else { throw YuzuError.nothingToDo("The selected section is too short.") }
         if let totalDuration, result.start <= 0.0005, result.end >= totalDuration - 0.0005 {
-            throw YuzuError.nothingToDo("Het hele bestand is geselecteerd; er valt niets in te korten.")
+            throw YuzuError.nothingToDo("The whole file is selected; there is nothing to trim.")
         }
         return result
     }
 }
 
-/// Tijden als `m:ss.f` of `u:mm:ss.f`; leest ook seconden, komma's en weggelaten nullen.
+/// Times as `m:ss.f` or `h:mm:ss.f`; also reads plain seconds, decimal commas and omitted zeros.
 public enum Timecode {
     public static func string(from seconds: Double, fractionDigits: Int = 1) -> String {
         let scale = pow(10, Double(fractionDigits))
@@ -198,27 +198,27 @@ public enum Timecode {
         var total = 0.0
         for (index, part) in parts.enumerated() {
             guard let value = Double(part), value >= 0 else { return nil }
-            // Minuten en seconden na de eerste component moeten onder de 60 blijven.
+            // Minutes and seconds after the first component must stay below 60.
             if index > 0, value >= 60 { return nil }
             total = total * 60 + value
         }
         return total
     }
 
-    /// Seconden zoals ffmpeg ze verwacht (`-ss`, `-t`).
+    /// Seconds as ffmpeg expects them (`-ss`, `-t`).
     static func ffmpeg(_ seconds: Double) -> String {
         String(format: "%.3f", max(seconds, 0))
     }
 }
 
-// MARK: - Comprimeren
+// MARK: - Compress
 
 public enum CompressionTarget: Sendable, Equatable {
-    /// De bestaande vaste instellingen; het resultaat blijft alleen staan als het kleiner is.
+    /// The existing fixed settings; the result is only kept when it is smaller.
     case automatic
-    /// Percentage van de oorspronkelijke grootte (1...99).
+    /// Percentage of the original size (1...99).
     case percentage(Int)
-    /// Gewenste grootte in bytes.
+    /// Desired size in bytes.
     case size(Int64)
 
     public func targetBytes(forOriginal original: Int64) -> Int64? {
@@ -238,28 +238,28 @@ public struct CompressionOptions: Sendable, Equatable {
     }
 }
 
-/// Kiest bitrates en resolutie om een video op een doelgrootte te krijgen.
+/// Chooses bitrates and resolution to get a video to a target size.
 public enum CompressionPlanner {
     public struct VideoPlan: Sendable, Equatable {
         public var videoBitrate: Int
         public var audioBitrate: Int
-        /// Maximale hoogte in pixels als de video kleiner moet; `nil` laat de resolutie staan.
+        /// Maximum height in pixels when the video needs to shrink; `nil` keeps the resolution.
         public var maxHeight: Int?
     }
 
-    /// Ruimte voor de container (moov-atoom, headers).
+    /// Room for the container (moov atom, headers).
     static let containerOverhead = 0.97
     public static let minimumVideoBitrate = 100_000
 
     public static func videoPlan(targetBytes: Int64, duration: Double, sourceHeight: Int?, hasAudio: Bool) throws -> VideoPlan {
-        guard duration > 0 else { throw YuzuError.nothingToDo("De duur van de video is onbekend.") }
+        guard duration > 0 else { throw YuzuError.nothingToDo("The duration of the video is unknown.") }
         let total = Int(Double(targetBytes) * 8 * containerOverhead / duration)
         let audio: Int
         if !hasAudio { audio = 0 } else if total >= 1_000_000 { audio = 128_000 } else if total >= 300_000 { audio = 96_000 } else { audio = 64_000 }
         let video = total - audio
         guard video >= minimumVideoBitrate else {
             let minimum = minimumBytes(duration: duration, hasAudio: hasAudio)
-            throw YuzuError.nothingToDo("Doelgrootte is te klein voor deze video; kies minstens \(ByteCountFormatter.string(fromByteCount: minimum, countStyle: .file)).")
+            throw YuzuError.nothingToDo("The target size is too small for this video; choose at least \(ByteCountFormatter.string(fromByteCount: minimum, countStyle: .file)).")
         }
         let limit: Int?
         switch video {

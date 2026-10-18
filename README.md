@@ -1,59 +1,59 @@
 # Yuzu
 
-Offline bestandsconverter voor macOS, geïnspireerd op Tangerine (zie [PLAN.md](PLAN.md)).
-Sleep een bestand, tik tijdens het slepen een toets en laat het los op het wiel.
+Offline file converter for macOS, inspired by Tangerine (see [PLAN.md](PLAN.md)).
+Drag a file, tap a key while dragging and drop it on the wheel.
 
-| Toets (standaard) | Wiel | Inhoud |
+| Key (default) | Wheel | Contents |
 |---|---|---|
-| ⇧ Shift | Converteren | doelformaten die bij de selectie passen |
-| ⌘ Command | Tools | comprimeren (automatisch, percentage of doelgrootte), bijsnijden, inkorten, metadata weg, PDF maken/samenvoegen/splitsen, dempen, normaliseren, uitpakken, QR lezen |
-| ⌃ Control | Acties | AirDrop, Float, kopiëren, verplaatsen, pad kopiëren, Terminal |
+| ⇧ Shift | Convert | target formats that fit the selection |
+| ⌘ Command | Tools | compress (automatic, percentage or target size), crop, trim, remove metadata, create/merge/split PDF, mute, normalize, extract, read QR |
+| ⌃ Control | Actions | AirDrop, Float, copy, move, copy path, Terminal |
 
-De uitvoer komt naast het origineel; er wordt nooit iets overschreven.
+The output is saved next to the original; nothing is ever overwritten.
 
-## Formaten
+## Formats
 
-- **Afbeeldingen:** JPG, PNG, WebP, HEIC, TIFF, AVIF, BMP → elkaar en PDF (SVG/PSD/RAW als invoer)
+- **Images:** JPG, PNG, WebP, HEIC, TIFF, AVIF, BMP → each other and PDF (SVG/PSD/RAW as input)
 - **Audio:** MP3, M4A, WAV, FLAC, OGG, Opus, AIFF, WMA
-- **Video:** MP4, MOV, MKV, WebM, AVI, WMV → elkaar, GIF en MP3
+- **Video:** MP4, MOV, MKV, WebM, AVI, WMV → each other, GIF and MP3
 - **PDF:** → DOCX, TXT, Markdown, RTF, HTML, PNG/JPG (300 DPI)
-- **Documenten:** DOCX, DOC, RTF, RTFD, ODT, HTML, TXT, Markdown → PDF, DOCX, RTF, ODT, HTML, TXT, Markdown
+- **Documents:** DOCX, DOC, RTF, RTFD, ODT, HTML, TXT, Markdown → PDF, DOCX, RTF, ODT, HTML, TXT, Markdown
 - **Spreadsheets:** XLSX ↔ CSV ↔ TSV
-- **Ondertitels:** SRT ↔ VTT → TXT
-- **Archieven en mappen:** ZIP, TAR, TAR.GZ (uitpakken ook GZ, RAR, 7z)
+- **Subtitles:** SRT ↔ VTT → TXT
+- **Archives and folders:** ZIP, TAR, TAR.GZ (extracting also handles GZ, RAR, 7z)
 
-## Vereisten
+## Requirements
 
-- macOS 14 of nieuwer, Apple silicon
-- `ffmpeg` voor audio/video en `cwebp` voor WebP (als ImageIO dat niet kan schrijven):
-  `brew install ffmpeg webp`. Yuzu zoekt eerst in `Yuzu.app/Contents/Resources/Tools`,
-  daarna in `/opt/homebrew/bin` en `/usr/local/bin`.
+- macOS 14 or later, Apple silicon
+- `ffmpeg` for audio/video and `cwebp` for WebP (when ImageIO can't write it):
+  `brew install ffmpeg webp`. Yuzu looks in `Yuzu.app/Contents/Resources/Tools` first,
+  then in `/opt/homebrew/bin` and `/usr/local/bin`.
 
-## Bouwen
+## Building
 
 ```bash
-swift test                    # alle core-tests
-scripts/build-app.sh          # bouwt build/Yuzu.app
-scripts/build-app.sh --install  # en kopieert naar /Applications
+swift test                      # all core tests
+scripts/build-app.sh            # builds build/Yuzu.app
+scripts/build-app.sh --install  # and copies it to /Applications
 ```
 
-Ontwikkelhulp: `.build/debug/Yuzu --render-previews /tmp/yuzu` schrijft PNG's van het wiel,
-de instellingen en de optiepanelen (licht en donker).
+Development aid: `.build/debug/Yuzu --render-previews /tmp/yuzu` writes PNGs of the wheel,
+the settings and the option panels (light and dark).
 
-Wat de sleepdetectie ziet, kun je volgen met:
+To follow what drag detection sees:
 
 ```bash
 log stream --predicate 'subsystem == "app.yuzu.Yuzu"' --level info
 ```
 
-## Structuur
+## Structure
 
-- `Sources/YuzuCore`: formaten, catalogus, `DragStateMachine`, converters en tools (getest)
-- `Sources/Yuzu`: menubalk-app: sleepmonitor, wiel, voortgangspaneel, acties, Float, instellingen
-- `Tests/YuzuCoreTests`: Swift Testing; mediatests draaien alleen als ffmpeg aanwezig is
+- `Sources/YuzuCore`: formats, catalog, `DragStateMachine`, converters and tools (tested)
+- `Sources/Yuzu`: menu bar app: drag monitor, wheel, progress panel, actions, Float, settings, option panels
+- `Tests/YuzuCoreTests`: Swift Testing; media tests only run when ffmpeg is installed
 
-## Nog niet gebouwd
+## Not built yet
 
-Zie fase 4 en 6 in [PLAN.md](PLAN.md): editors met eigen venster (annoteren, fotobewerking,
-collage, redactie, splitsen/samenvoegen van video), PowerPoint, Pages, EPUB,
-ODS, onboarding met oefenwiel en sandbox/App Store-distributie.
+See phases 4 and 6 in [PLAN.md](PLAN.md): editors with their own window (annotate, photo editing,
+collage, redaction, splitting/joining video), PowerPoint, Pages, EPUB,
+ODS, onboarding with a practice wheel and sandbox/App Store distribution.

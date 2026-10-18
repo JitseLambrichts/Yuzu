@@ -3,7 +3,7 @@ import Foundation
 import ServiceManagement
 import YuzuCore
 
-/// Instellingen in UserDefaults, observeerbaar voor SwiftUI.
+/// Settings in UserDefaults, observable from SwiftUI.
 @MainActor
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
@@ -17,7 +17,7 @@ final class AppSettings: ObservableObject {
     @Published var hasCompletedWelcome: Bool { didSet { defaults.set(hasCompletedWelcome, forKey: "hasCompletedWelcome") } }
     @Published private(set) var bindings: [WheelKind: ModifierSet]
 
-    /// Modifier-combinaties die je per wiel kunt kiezen.
+    /// Modifier combinations you can choose per wheel.
     static let modifierChoices: [ModifierSet] = [
         .shift, .command, .control, .option,
         [.shift, .command], [.control, .shift], [.option, .shift], [.control, .option],
@@ -51,7 +51,7 @@ final class AppSettings: ObservableObject {
         defaults.set(modifiers.rawValue, forKey: "modifiers.\(kind.rawValue)")
     }
 
-    /// Wielen die dezelfde combinatie delen; dan opent alleen het eerste.
+    /// Wheels that share the same combination; only the first one opens.
     var conflictingKinds: Set<WheelKind> {
         var seen: [ModifierSet: WheelKind] = [:]
         var conflicts: Set<WheelKind> = []
@@ -67,7 +67,7 @@ final class AppSettings: ObservableObject {
         return conflicts
     }
 
-    // MARK: - Starten bij inloggen
+    // MARK: - Launch at login
 
     var launchesAtLogin: Bool {
         SMAppService.mainApp.status == .enabled

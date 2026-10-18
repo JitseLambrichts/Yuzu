@@ -12,7 +12,7 @@ public struct SubtitleCue: Equatable, Sendable {
     }
 }
 
-/// SRT ↔ VTT en export naar platte tekst.
+/// SRT ↔ VTT and export to plain text.
 public enum SubtitleConverter {
     public static func parse(_ content: String) -> [SubtitleCue] {
         let normalized = content.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\u{FEFF}", with: "")
@@ -30,7 +30,7 @@ public enum SubtitleConverter {
         return cues
     }
 
-    /// Accepteert `01:02:03,456`, `01:02:03.456` en `02:03.456`.
+    /// Accepts `01:02:03,456`, `01:02:03.456` and `02:03.456`.
     static func parseTime(_ raw: String) -> TimeInterval? {
         let value = raw.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
         let components = value.split(separator: ":").map(String.init)
@@ -77,7 +77,7 @@ public enum SubtitleConverter {
         case .srt: content = srt(cues)
         case .vtt: content = vtt(cues)
         case .txt: content = plainText(cues)
-        default: throw YuzuError.unsupported("ondertitels naar \(format.displayName)")
+        default: throw YuzuError.unsupported("subtitles to \(format.displayName)")
         }
         try content.write(to: output, atomically: true, encoding: .utf8)
     }

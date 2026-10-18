@@ -8,9 +8,9 @@ final class CompressModel: ObservableObject {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .automatic: return "Automatisch"
+            case .automatic: return "Automatic"
             case .percentage: return "Percentage"
-            case .size: return "Doelgrootte"
+            case .size: return "Target Size"
             }
         }
     }
@@ -69,23 +69,23 @@ final class CompressModel: ObservableObject {
         mode != .size || sizeValue > 0
     }
 
-    /// Korte uitleg wat er met de bestanden gebeurt.
+    /// Short explanation of what happens to the files.
     var explanation: String {
-        let each = urls.count > 1 ? " per bestand" : ""
+        let each = urls.count > 1 ? " per file" : ""
         switch mode {
         case .automatic:
-            return "Vaste, verstandige instellingen. Het resultaat blijft alleen staan als het kleiner is."
+            return "Fixed, sensible settings. The result is only kept when it is smaller."
         case .percentage:
             let estimate = ByteCountFormatter.string(fromByteCount: totalBytes * Int64(percentage.rounded()) / 100, countStyle: .file)
-            return "Doel: \(Int(percentage.rounded())) % van het origineel\(each) — samen ongeveer \(estimate)."
+            return "Target: \(Int(percentage.rounded()))% of the original\(each), about \(estimate) in total."
         case .size:
             let bytes = Int64(max(sizeValue, 0) * unit.bytes)
-            let images = categories.contains(.image) ? " Afbeeldingen worden zo nodig ook kleiner gemaakt." : ""
-            return "Doel: hoogstens \(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file))\(each).\(images)"
+            let images = categories.contains(.image) ? " Images are also scaled down if needed." : ""
+            return "Target: at most \(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file))\(each).\(images)"
         }
     }
 
-    /// Wat de doelgrootte betekent voor één video: bitrate en eventuele kleinere resolutie, of waarom het niet kan.
+    /// What the target size means for a single video: bitrate and a possibly lower resolution, or why it can't be done.
     var videoPlanText: String? {
         guard mode != .automatic, let info = videoInfo, let duration = info.duration, let original = sizes.first,
               let bytes = target.targetBytes(forOriginal: original) else { return nil }
@@ -94,7 +94,7 @@ final class CompressModel: ObservableObject {
                                                         sourceHeight: info.videoSize.map { Int($0.height) }, hasAudio: info.hasAudio)
             var parts = ["Video ≈ \(plan.videoBitrate / 1000) kbit/s"]
             if plan.audioBitrate > 0 { parts.append("audio \(plan.audioBitrate / 1000) kbit/s") }
-            if let height = plan.maxHeight { parts.append("verkleind tot \(height)p") }
+            if let height = plan.maxHeight { parts.append("scaled down to \(height)p") }
             return parts.joined(separator: " · ")
         } catch {
             return error.localizedDescription
@@ -117,9 +117,9 @@ struct CompressPanel: View {
         VStack(spacing: 0) {
             Form {
                 Section {
-                    LabeledContent(model.urls.count == 1 ? "Origineel" : "\(model.urls.count) bestanden",
+                    LabeledContent(model.urls.count == 1 ? "Original" : "\(model.urls.count) files",
                                    value: ByteCountFormatter.string(fromByteCount: model.totalBytes, countStyle: .file))
-                    Picker("Methode", selection: $model.mode) {
+                    Picker("Method", selection: $model.mode) {
                         ForEach(CompressModel.Mode.allCases) { mode in Text(mode.displayName).tag(mode) }
                     }
                     .pickerStyle(.segmented)
@@ -129,21 +129,21 @@ struct CompressPanel: View {
                     case .automatic:
                         EmptyView()
                     case .percentage:
-                        LabeledContent("Grootte") {
+                        LabeledContent("Size") {
                             HStack {
                                 Slider(value: $model.percentage, in: 10...90, step: 5)
-                                Text("\(Int(model.percentage.rounded())) %").monospacedDigit().frame(width: 44, alignment: .trailing)
+                                Text("\(Int(model.percentage.rounded()))%").monospacedDigit().frame(width: 44, alignment: .trailing)
                             }
                         }
                     case .size:
-                        LabeledContent(model.urls.count == 1 ? "Hoogstens" : "Hoogstens per bestand") {
+                        LabeledContent(model.urls.count == 1 ? "At most" : "At most per file") {
                             HStack(spacing: 6) {
-                                TextField("Grootte", value: $model.sizeValue, format: .number.precision(.fractionLength(0...2)))
+                                TextField("Size", value: $model.sizeValue, format: .number.precision(.fractionLength(0...2)))
                                     .labelsHidden()
                                     .textFieldStyle(.roundedBorder)
                                     .multilineTextAlignment(.trailing)
                                     .frame(width: 80)
-                                Picker("Eenheid", selection: $model.unit) {
+                                Picker("Unit", selection: $model.unit) {
                                     ForEach(CompressModel.Unit.allCases) { unit in Text(unit.rawValue).tag(unit) }
                                 }
                                 .labelsHidden()
@@ -156,8 +156,8 @@ struct CompressPanel: View {
                         Text(model.explanation)
                         if let plan = model.videoPlanText { Text(plan) }
                         if model.containsPDF {
-                            Text(model.onlyPDF ? "PDF's worden altijd automatisch gecomprimeerd."
-                                               : "PDF's in de selectie worden automatisch gecomprimeerd.")
+                            Text(model.onlyPDF ? "PDFs are always compressed automatically."
+                                               : "PDFs in the selection are compressed automatically.")
                         }
                     }
                     .font(.callout)

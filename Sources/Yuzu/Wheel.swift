@@ -25,12 +25,12 @@ struct WheelItem {
 }
 
 enum YuzuColors {
-    /// Yuzu-geel voor het gemarkeerde segment.
+    /// Yuzu yellow for the highlighted segment.
     static let accent = NSColor(srgbRed: 0.98, green: 0.80, blue: 0.13, alpha: 1)
     static let accentText = NSColor(srgbRed: 0.18, green: 0.15, blue: 0.02, alpha: 1)
 }
 
-/// Toont het radiale wiel in een niet-activerend paneel rond de cursor.
+/// Shows the radial wheel in a non-activating panel around the cursor.
 @MainActor
 final class WheelController {
     var onDrop: ((WheelItem, [URL]) -> Void)?
@@ -49,7 +49,7 @@ final class WheelController {
         guard let view = wheelView else { return }
         view.items = items
         view.title = kind.displayName
-        view.subtitle = fileCount == 1 ? "1 bestand" : "\(fileCount) bestanden"
+        view.subtitle = fileCount == 1 ? "1 file" : "\(fileCount) files"
         view.highlightedIndex = nil
         view.playsSounds = playsSounds
 
@@ -65,7 +65,7 @@ final class WheelController {
         view.needsDisplay = true
     }
 
-    /// Verbergen met vertraging: de drop komt vaak net ná het loslaten van de muisknop binnen.
+    /// Hides with a delay: the drop often arrives just after the mouse button is released.
     func scheduleHide(after delay: TimeInterval = 0.4) {
         pendingHide?.cancel()
         let work = DispatchWorkItem { [weak self] in self?.hide() }
@@ -97,7 +97,7 @@ final class WheelController {
         let view = WheelView(frame: CGRect(origin: .zero, size: Self.size))
         view.onDrop = { [weak self] item, urls in
             self?.hide()
-            // Laat de drag-sessie eerst afronden voordat we eventueel panelen openen.
+            // Let the drag session finish before we open any panels.
             DispatchQueue.main.async { self?.onDrop?(item, urls) }
         }
         panel.contentView = view
@@ -119,7 +119,7 @@ final class WheelController {
     }
 }
 
-/// Tekent de segmenten en is zelf de drop-bestemming; het segment volgt uit de hoek t.o.v. het midden.
+/// Draws the segments and is the drop destination itself; the segment follows from the angle to the center.
 final class WheelView: NSView {
     var items: [WheelItem] = [] { didSet { needsDisplay = true } }
     var title = ""
@@ -152,7 +152,7 @@ final class WheelView: NSView {
         registerForDraggedTypes([.fileURL])
     }
 
-    required init?(coder: NSCoder) { fatalError("init(coder:) is niet ondersteund") }
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
 
     private var center: CGPoint { CGPoint(x: bounds.midX, y: bounds.midY) }
     private var segmentDegrees: CGFloat { 360 / CGFloat(max(items.count, 1)) }
@@ -169,7 +169,7 @@ final class WheelView: NSView {
         return min(Int(fromTop / segmentDegrees), items.count - 1)
     }
 
-    // MARK: - Tekenen
+    // MARK: - Drawing
 
     override func draw(_ dirtyRect: NSRect) {
         let ring = NSBezierPath(ovalIn: CGRect(x: center.x - outerRadius, y: center.y - outerRadius,
@@ -185,7 +185,7 @@ final class WheelView: NSView {
         NSGraphicsContext.restoreGraphicsState()
 
         if items.isEmpty {
-            drawCenter(primary: "Niets beschikbaar", secondary: "voor deze selectie")
+            drawCenter(primary: "Nothing available", secondary: "for this selection")
             return
         }
 
@@ -201,7 +201,7 @@ final class WheelView: NSView {
         }
 
         if let highlightedIndex, items.indices.contains(highlightedIndex) {
-            drawCenter(primary: items[highlightedIndex].title, secondary: "loslaten om te starten")
+            drawCenter(primary: items[highlightedIndex].title, secondary: "release to start")
         } else {
             drawCenter(primary: title, secondary: subtitle)
         }
@@ -273,7 +273,7 @@ final class WheelView: NSView {
                                         width: width, height: secondaryHeight), options: .usesLineFragmentOrigin)
     }
 
-    // MARK: - Drop-bestemming
+    // MARK: - Drop destination
 
     private func updateHighlight(_ sender: NSDraggingInfo) -> NSDragOperation {
         highlightedIndex = index(at: convert(sender.draggingLocation, from: nil))

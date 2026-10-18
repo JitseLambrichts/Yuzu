@@ -4,7 +4,7 @@ import OSLog
 import SwiftUI
 import YuzuCore
 
-/// Houdt lopende conversies bij en toont ze in een klein zwevend paneel rechtsboven.
+/// Tracks running conversions and shows them in a small floating panel at the top right.
 @MainActor
 final class JobCenter: ObservableObject {
     struct Job: Identifiable {
@@ -35,7 +35,7 @@ final class JobCenter: ObservableObject {
         }
     }
 
-    /// Start werk op de achtergrond. `work` krijgt een voortgangs-callback (0...1).
+    /// Starts work in the background. `work` receives a progress callback (0...1).
     func start(title: String, work: @escaping @Sendable (@escaping @Sendable (Double) -> Void) async throws -> ToolResult) {
         let job = Job(title: title)
         jobs.append(job)
@@ -60,7 +60,7 @@ final class JobCenter: ObservableObject {
     }
 
     private func finish(_ id: UUID, result: ToolResult) {
-        logger.info("klaar: \(result.outputs.map(\.lastPathComponent).joined(separator: ", "), privacy: .public)")
+        logger.info("done: \(result.outputs.map(\.lastPathComponent).joined(separator: ", "), privacy: .public)")
         update(id) { job in
             job.state = .done
             job.progress = 1
@@ -72,7 +72,7 @@ final class JobCenter: ObservableObject {
     }
 
     private func fail(_ id: UUID, message: String) {
-        logger.error("mislukt: \(message, privacy: .public)")
+        logger.error("failed: \(message, privacy: .public)")
         update(id) { $0.state = .failed(message) }
         if playsSounds { NSSound(named: "Basso")?.play() }
         removeLater(id, after: 12)
@@ -86,7 +86,7 @@ final class JobCenter: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in self?.remove(id) }
     }
 
-    // MARK: - Paneel
+    // MARK: - Panel
 
     private func layoutPanel(jobCount: Int) {
         guard jobCount > 0 else {
@@ -172,13 +172,13 @@ private struct JobRow: View {
             if let progress = job.progress {
                 ProgressView(value: progress).progressViewStyle(.linear).tint(Color(nsColor: YuzuColors.accent))
             } else {
-                Text("Bezig…").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("Working…").font(.system(size: 11)).foregroundStyle(.secondary)
             }
         case .done:
             if let message = job.message {
-                Text("Gekopieerd: \(message)").font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(2)
+                Text("Copied: \(message)").font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(2)
             } else {
-                Button("Toon in Finder") { NSWorkspace.shared.activateFileViewerSelecting(job.outputs) }
+                Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting(job.outputs) }
                     .buttonStyle(.link).font(.system(size: 11))
             }
         case .failed(let message):

@@ -76,20 +76,20 @@ import Testing
 
 @Suite struct DocumentConverterTests {
     @Test func markdownRoundTripKeepsStructure() {
-        let markdown = "# Titel\n\nEen **vette** en *cursieve* zin.\n\n- eerste\n- tweede\n"
+        let markdown = "# Title\n\nA **bold** and *italic* sentence.\n\n- first\n- second\n"
         let attributed = Markdown.attributedString(from: markdown)
-        #expect(attributed.string.contains("Titel"))
+        #expect(attributed.string.contains("Title"))
         let back = Markdown.markdown(from: attributed)
-        #expect(back.contains("# Titel"))
-        #expect(back.contains("**vette**"))
-        #expect(back.contains("*cursieve*"))
-        #expect(back.contains("- eerste"))
+        #expect(back.contains("# Title"))
+        #expect(back.contains("**bold**"))
+        #expect(back.contains("*italic*"))
+        #expect(back.contains("- first"))
     }
 
     @Test(arguments: [ConversionFormat.docx, .pdf, .rtf, .odt, .html, .txt])
     func markdownConvertsTo(_ format: ConversionFormat) async throws {
         let dir = try TestFiles.temporaryDirectory()
-        let source = try TestFiles.write("# Hallo\n\nDit is **Yuzu**.\n", to: dir, name: "notes.md")
+        let source = try TestFiles.write("# Hello\n\nThis is **Yuzu**.\n", to: dir, name: "notes.md")
         let output = try #require(try await ConversionEngine.convert(source, to: format).first)
         let size = try output.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         #expect(size > 0)
@@ -101,16 +101,16 @@ import Testing
 
     @Test func docxRoundTrip() async throws {
         let dir = try TestFiles.temporaryDirectory()
-        let source = try TestFiles.write("Regel een\nRegel twee\n", to: dir, name: "plain.txt")
+        let source = try TestFiles.write("Line one\nLine two\n", to: dir, name: "plain.txt")
         let docx = try #require(try await ConversionEngine.convert(source, to: .docx).first)
         let back = try #require(try await ConversionEngine.convert(docx, to: .txt).first)
         let text = try String(contentsOf: back, encoding: .utf8)
-        #expect(text.contains("Regel twee"))
+        #expect(text.contains("Line two"))
     }
 
     @Test func pdfToTextAndImages() async throws {
         let dir = try TestFiles.temporaryDirectory()
-        let source = try TestFiles.write("Pagina met tekst over citrus.\n", to: dir, name: "doc.txt")
+        let source = try TestFiles.write("A page of text about citrus.\n", to: dir, name: "doc.txt")
         let pdf = try #require(try await ConversionEngine.convert(source, to: .pdf).first)
         let txt = try #require(try await ConversionEngine.convert(pdf, to: .txt).first)
         #expect(try String(contentsOf: txt, encoding: .utf8).contains("citrus"))
@@ -121,35 +121,35 @@ import Testing
 
 @Suite struct TextFormatTests {
     @Test func srtToVttAndBack() throws {
-        let srt = "1\n00:00:01,000 --> 00:00:02,500\nHallo\n\n2\n00:00:03,000 --> 00:00:04,000\n<i>Wereld</i>\n"
+        let srt = "1\n00:00:01,000 --> 00:00:02,500\nHello\n\n2\n00:00:03,000 --> 00:00:04,000\n<i>World</i>\n"
         let cues = SubtitleConverter.parse(srt)
-        #expect(cues == [SubtitleCue(start: 1, end: 2.5, text: "Hallo"), SubtitleCue(start: 3, end: 4, text: "<i>Wereld</i>")])
+        #expect(cues == [SubtitleCue(start: 1, end: 2.5, text: "Hello"), SubtitleCue(start: 3, end: 4, text: "<i>World</i>")])
         let vtt = SubtitleConverter.vtt(cues)
         #expect(vtt.hasPrefix("WEBVTT"))
         #expect(vtt.contains("00:00:01.000 --> 00:00:02.500"))
         #expect(SubtitleConverter.parse(vtt) == cues)
-        #expect(SubtitleConverter.plainText(cues) == "Hallo\nWereld\n")
+        #expect(SubtitleConverter.plainText(cues) == "Hello\nWorld\n")
     }
 
     @Test func vttShortTimestamps() {
-        let cues = SubtitleConverter.parse("WEBVTT\n\nintro\n01:02.500 --> 01:04.000 align:start\nHoi\n")
-        #expect(cues == [SubtitleCue(start: 62.5, end: 64, text: "Hoi")])
+        let cues = SubtitleConverter.parse("WEBVTT\n\nintro\n01:02.500 --> 01:04.000 align:start\nHi\n")
+        #expect(cues == [SubtitleCue(start: 62.5, end: 64, text: "Hi")])
     }
 
     @Test func csvParsingHandlesQuotes() {
-        let table = SpreadsheetConverter.parseDelimited("naam,notitie\n\"Jansen, P\",\"zei \"\"hoi\"\"\"\n", delimiter: ",")
-        #expect(table == [["naam", "notitie"], ["Jansen, P", "zei \"hoi\""]])
-        #expect(SpreadsheetConverter.delimited(table, delimiter: ",") == "naam,notitie\n\"Jansen, P\",\"zei \"\"hoi\"\"\"\n")
+        let table = SpreadsheetConverter.parseDelimited("name,note\n\"Smith, J\",\"said \"\"hi\"\"\"\n", delimiter: ",")
+        #expect(table == [["name", "note"], ["Smith, J", "said \"hi\""]])
+        #expect(SpreadsheetConverter.delimited(table, delimiter: ",") == "name,note\n\"Smith, J\",\"said \"\"hi\"\"\"\n")
     }
 
     @Test func csvToXlsxAndBack() async throws {
         let dir = try TestFiles.temporaryDirectory()
-        let source = try TestFiles.write("product;prijs;code\nYuzu;3.5;007\nCitroen;1;12\n", to: dir, name: "lijst.csv")
+        let source = try TestFiles.write("product;price;code\nYuzu;3.5;007\nLemon;1;12\n", to: dir, name: "list.csv")
         let xlsx = try #require(try await ConversionEngine.convert(source, to: .xlsx).first)
         let table = try await SpreadsheetConverter.readXLSX(xlsx)
-        #expect(table == [["product", "prijs", "code"], ["Yuzu", "3.5", "007"], ["Citroen", "1", "12"]])
+        #expect(table == [["product", "price", "code"], ["Yuzu", "3.5", "007"], ["Lemon", "1", "12"]])
         let tsv = try #require(try await ConversionEngine.convert(xlsx, to: .tsv).first)
-        #expect(try String(contentsOf: tsv, encoding: .utf8).hasPrefix("product\tprijs\tcode\n"))
+        #expect(try String(contentsOf: tsv, encoding: .utf8).hasPrefix("product\tprice\tcode\n"))
     }
 
     @Test func columnNames() {
@@ -164,7 +164,7 @@ import Testing
         let dir = try TestFiles.temporaryDirectory()
         let folder = dir.appendingPathComponent("project")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        _ = try TestFiles.write("inhoud", to: folder, name: "readme.txt")
+        _ = try TestFiles.write("contents", to: folder, name: "readme.txt")
 
         let zip = try #require(try await ConversionEngine.convert(folder, to: .zip).first)
         #expect(zip.lastPathComponent == "project.zip")
@@ -173,7 +173,7 @@ import Testing
 
         let extracted = try #require(try await FileToolEngine.run(.extractArchive, sources: [tgz]).outputs.first)
         let readme = extracted.appendingPathComponent("project/readme.txt")
-        #expect(try String(contentsOf: readme, encoding: .utf8) == "inhoud")
+        #expect(try String(contentsOf: readme, encoding: .utf8) == "contents")
     }
 }
 
@@ -194,9 +194,9 @@ struct MediaTests {
         return url
     }
 
-    /// Ruis comprimeert slecht, dus de doelgrootte wordt echt op de proef gesteld.
+    /// Noise compresses poorly, so the target size is really put to the test.
     static func makeNoiseVideo(in dir: URL) async throws -> URL {
-        let url = dir.appendingPathComponent("ruis.mov")
+        let url = dir.appendingPathComponent("noise.mov")
         try await ProcessRunner.runChecked(try ToolLocator.require("ffmpeg"),
                                            ["-hide_banner", "-y", "-f", "lavfi", "-i", "testsrc=size=640x360:rate=25:duration=3",
                                             "-f", "lavfi", "-i", "sine=duration=3", "-shortest", "-vf", "noise=alls=60:allf=t",

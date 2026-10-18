@@ -1,6 +1,6 @@
 #!/bin/zsh
-# Bouwt build/Yuzu.app (release, ad-hoc gesigneerd).
-# Gebruik: scripts/build-app.sh [--install]   (--install kopieert naar /Applications)
+# Builds build/Yuzu.app (release, ad-hoc signed).
+# Usage: scripts/build-app.sh [--install]   (--install copies it to /Applications)
 set -euo pipefail
 
 ROOT="${0:A:h:h}"
@@ -15,7 +15,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/Tools"
 cp "$BIN" "$APP/Contents/MacOS/Yuzu"
 
-# Optioneel: zelf gecompileerde, statische ffmpeg/cwebp meeleveren via vendor/Tools.
+# Optional: bundle self-built, static ffmpeg/cwebp binaries from vendor/Tools.
 if [[ -d "$ROOT/vendor/Tools" ]]; then
   cp -R "$ROOT/vendor/Tools/." "$APP/Contents/Resources/Tools/"
 fi
@@ -25,7 +25,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleDevelopmentRegion</key><string>nl</string>
+  <key>CFBundleDevelopmentRegion</key><string>en</string>
   <key>CFBundleDisplayName</key><string>Yuzu</string>
   <key>CFBundleExecutable</key><string>Yuzu</string>
   <key>CFBundleIdentifier</key><string>app.yuzu.Yuzu</string>
@@ -38,17 +38,17 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
-  <key>NSHumanReadableCopyright</key><string>Yuzu — offline bestandsconverter</string>
+  <key>NSHumanReadableCopyright</key><string>Yuzu — offline file converter</string>
 </dict>
 </plist>
 PLIST
 
 codesign --force --deep --sign - "$APP" >/dev/null
-echo "Gebouwd: $APP"
+echo "Built: $APP"
 
 if [[ "${1:-}" == "--install" ]]; then
   pkill -x Yuzu 2>/dev/null || true
   rm -rf /Applications/Yuzu.app
   cp -R "$APP" /Applications/Yuzu.app
-  echo "Geïnstalleerd: /Applications/Yuzu.app"
+  echo "Installed: /Applications/Yuzu.app"
 fi

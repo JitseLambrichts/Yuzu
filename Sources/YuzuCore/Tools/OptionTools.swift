@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 import ImageIO
 
-/// Tools met een optiepaneel: bijsnijden, inkorten en comprimeren naar een doelgrootte.
+/// Tools with an options panel: crop, trim and compress to a target size.
 extension FileToolEngine {
     static func cropImage(_ source: URL, options: CropOptions, settings: ConversionSettings) throws -> URL {
         let (image, properties) = try ImageConverter.loadOriented(source)
@@ -16,14 +16,14 @@ extension FileToolEngine {
         var kept: [CFString: Any] = [:]
         if settings.preserveMetadata {
             kept = properties
-            // De oude afmetingen kloppen niet meer na het bijsnijden.
+            // The old dimensions are no longer correct after cropping.
             if var exif = kept[kCGImagePropertyExifDictionary] as? [CFString: Any] {
                 exif[kCGImagePropertyExifPixelXDimension] = nil
                 exif[kCGImagePropertyExifPixelYDimension] = nil
                 kept[kCGImagePropertyExifDictionary] = exif
             }
         }
-        let output = OutputNaming.output(for: source, fileExtension: format.fileExtension, suffix: "bijgesneden")
+        let output = OutputNaming.output(for: source, fileExtension: format.fileExtension, suffix: "cropped")
         try ImageConverter.write(cropped, properties: kept, format: format, quality: max(settings.quality.imageQuality, 0.9), to: output)
         return output
     }
@@ -38,7 +38,7 @@ extension FileToolEngine {
         let format: ConversionFormat?
         let fileExtension: String
         if !range.reencode {
-            // Streams kopiëren kan alleen veilig in dezelfde container.
+            // Copying streams is only safe within the same container.
             format = sourceFormat
             fileExtension = source.pathExtension
         } else if isVideo {
@@ -50,22 +50,22 @@ extension FileToolEngine {
             format = chosen
             fileExtension = chosen.fileExtension
         }
-        let output = OutputNaming.output(for: source, fileExtension: fileExtension, suffix: "ingekort")
+        let output = OutputNaming.output(for: source, fileExtension: fileExtension, suffix: "trimmed")
         let arguments = FFmpegArguments.trim(input: source, output: output, options: range, format: format, isVideo: isVideo,
                                              encoders: await MediaConverter.encoders(ffmpeg: ffmpeg))
         try await runMedia(arguments, duration: range.duration, output: output, progress: progress)
         return output
     }
 
-    /// Video naar een doelgrootte. VideoToolbox schiet soms over de bitrate heen; dan volgt één tweede poging.
+    /// Video to a target size. VideoToolbox sometimes overshoots the bitrate; if so, it tries once more.
     static func compressVideo(_ source: URL, targetBytes: Int64, progress: @escaping @Sendable (Double) -> Void) async throws -> URL {
         let info = await MediaProbe.info(of: source)
         guard let duration = info.duration else {
-            throw YuzuError.nothingToDo("Kon de duur van \(source.lastPathComponent) niet bepalen.")
+            throw YuzuError.nothingToDo("Couldn't determine the duration of \(source.lastPathComponent).")
         }
         var plan = try CompressionPlanner.videoPlan(targetBytes: targetBytes, duration: duration,
                                                     sourceHeight: info.videoSize.map { Int($0.height) }, hasAudio: info.hasAudio)
-        let output = OutputNaming.output(for: source, fileExtension: "mp4", suffix: "gecomprimeerd")
+        let output = OutputNaming.output(for: source, fileExtension: "mp4", suffix: "compressed")
         try await runMedia(FFmpegArguments.compressVideo(input: source, output: output, plan: plan),
                            duration: duration, output: output) { progress($0 * 0.85) }
 
@@ -84,7 +84,7 @@ extension FileToolEngine {
     }
 }
 
-/// Zoekt de kwaliteit (en zo nodig kleinere afmetingen) waarmee een afbeelding onder een doelgrootte blijft.
+/// Finds the quality (and smaller dimensions if needed) that keeps an image below a target size.
 enum ImageSizeFitter {
     static func encode(_ image: CGImage, properties: [CFString: Any], format: ConversionFormat, targetBytes: Int64,
                        name: String) throws -> Data {
@@ -107,11 +107,11 @@ enum ImageSizeFitter {
                 }
                 return fitting
             }
-            // Zelfs de laagste kwaliteit is te groot: kleiner maken en opnieuw zoeken.
+            // Even the lowest quality is too large: scale down and search again.
             let factor = min(max((Double(targetBytes) / Double(floor.count)).squareRoot() * 0.9, 0.1), 0.9)
             guard current.width > 16, current.height > 16 else { break }
             current = try ImageConverter.scaled(current, by: factor)
         }
-        throw YuzuError.nothingToDo("Kon \(name) niet klein genoeg maken voor de gekozen grootte.")
+        throw YuzuError.nothingToDo("Couldn't make \(name) small enough for the chosen size.")
     }
 }

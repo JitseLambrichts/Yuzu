@@ -1,7 +1,7 @@
 import AppKit
 import YuzuCore
 
-/// Acties uit het ⌃-wiel. Die wijzigen niets aan de inhoud van bestanden.
+/// Actions on the ⌃ wheel. They never change the contents of files.
 @MainActor
 enum FileActions {
     static func perform(_ action: FileAction, urls: [URL], floatShelf: FloatShelfController) {
@@ -9,7 +9,7 @@ enum FileActions {
         case .airDrop:
             NSApp.activate()
             guard let service = NSSharingService(named: .sendViaAirDrop), service.canPerform(withItems: urls) else {
-                showAlert("AirDrop is niet beschikbaar.")
+                showAlert("AirDrop isn't available.")
                 return
             }
             service.perform(withItems: urls)
@@ -37,8 +37,8 @@ enum FileActions {
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
-        panel.prompt = "Verplaats hierheen"
-        panel.message = urls.count == 1 ? "Waar moet \(urls[0].lastPathComponent) heen?" : "Waar moeten \(urls.count) onderdelen heen?"
+        panel.prompt = "Move Here"
+        panel.message = urls.count == 1 ? "Where should \(urls[0].lastPathComponent) go?" : "Where should \(urls.count) items go?"
         guard panel.runModal() == .OK, let destination = panel.url else { return }
         var failures: [String] = []
         for url in urls {
@@ -51,7 +51,7 @@ enum FileActions {
             }
         }
         if !failures.isEmpty {
-            showAlert("Kon niet verplaatsen: \(failures.joined(separator: ", "))")
+            showAlert("Couldn't move: \(failures.joined(separator: ", "))")
         }
     }
 
@@ -63,7 +63,7 @@ enum FileActions {
         let workspace = NSWorkspace.shared
         guard let terminal = workspace.urlForApplication(withBundleIdentifier: "com.googlecode.iterm2")
             ?? workspace.urlForApplication(withBundleIdentifier: "com.apple.Terminal") else {
-            showAlert("Geen Terminal-app gevonden.")
+            showAlert("No Terminal app found.")
             return
         }
         workspace.open([folder], withApplicationAt: terminal, configuration: NSWorkspace.OpenConfiguration())

@@ -1,16 +1,16 @@
 import Foundation
 
-/// Stuurt een conversie naar de juiste converter en schrijft de uitvoer naast het origineel.
+/// Routes a conversion to the right converter and writes the output next to the original.
 public enum ConversionEngine {
     @discardableResult
     public static func convert(_ source: URL, to format: ConversionFormat, settings: ConversionSettings = .init(),
                                progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws -> [URL] {
         let category = FileCategory.of(source)
         guard ConversionCatalog.targets(for: category).contains(format) else {
-            throw YuzuError.unsupported("\(source.lastPathComponent) naar \(format.displayName)")
+            throw YuzuError.unsupported("\(source.lastPathComponent) to \(format.displayName)")
         }
 
-        // PDF → afbeeldingen kan meerdere bestanden of een map opleveren.
+        // PDF → images can produce several files or a folder.
         if category == .pdf {
             return try await PDFConverter.convert(source, to: format, settings: settings)
         }

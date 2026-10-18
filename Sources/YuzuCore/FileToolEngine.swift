@@ -4,7 +4,7 @@ import Vision
 
 public struct ToolResult: Sendable {
     public var outputs: [URL]
-    /// Tekst die de app toont of naar het klembord kopieert (bijvoorbeeld de inhoud van een QR-code).
+    /// Text the app shows or copies to the clipboard (for example the contents of a QR code).
     public var message: String?
 
     public init(outputs: [URL], message: String? = nil) {
@@ -13,26 +13,26 @@ public struct ToolResult: Sendable {
     }
 }
 
-/// Voert de tools uit het ⌘-wiel uit. Tools met een optiepaneel krijgen de keuzes via `options`;
-/// zonder opties gebruiken ze verstandige standaardwaarden (of weigeren ze als dat niet kan).
+/// Runs the tools on the ⌘ wheel. Tools with an options panel receive the choices through `options`;
+/// without options they use sensible defaults (or refuse when that isn't possible).
 public enum FileToolEngine {
     public static func run(_ tool: FileTool, sources: [URL], options: FileToolOptions? = nil, settings: ConversionSettings = .init(),
                            progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws -> ToolResult {
         guard tool.applies(to: sources.map(FileCategory.of)) else {
-            throw YuzuError.unsupported("\(tool.displayName) voor deze selectie")
+            throw YuzuError.unsupported("\(tool.displayName) for this selection")
         }
         switch tool {
         case .createPDF:
-            let output = OutputNaming.output(for: sources[0], fileExtension: "pdf", suffix: sources.count > 1 ? "en meer" : nil)
+            let output = OutputNaming.output(for: sources[0], fileExtension: "pdf", suffix: sources.count > 1 ? "and more" : nil)
             try ImageConverter.writePDF(images: sources, to: output)
             return ToolResult(outputs: [output])
         case .mergePDF:
-            let output = OutputNaming.uniqueURL(in: sources[0].deletingLastPathComponent(), baseName: "Samengevoegd", fileExtension: "pdf")
+            let output = OutputNaming.uniqueURL(in: sources[0].deletingLastPathComponent(), baseName: "Merged", fileExtension: "pdf")
             try PDFConverter.merge(sources, into: output)
             return ToolResult(outputs: [output])
         case .readQRCode:
             let payloads = try sources.flatMap(readCodes)
-            guard !payloads.isEmpty else { throw YuzuError.nothingToDo("Geen QR- of streepjescode gevonden.") }
+            guard !payloads.isEmpty else { throw YuzuError.nothingToDo("No QR code or barcode found.") }
             return ToolResult(outputs: [], message: payloads.joined(separator: "\n"))
         default:
             var outputs: [URL] = []
@@ -59,7 +59,7 @@ public enum FileToolEngine {
         case (.compress, .video) where targetBytes != nil:
             return [try await compressVideo(source, targetBytes: targetBytes!, progress: progress)]
         case (.compress, .video):
-            let output = OutputNaming.output(for: source, fileExtension: "mp4", suffix: "gecomprimeerd")
+            let output = OutputNaming.output(for: source, fileExtension: "mp4", suffix: "compressed")
             let args = FFmpegArguments.base(input: source) + [
                 "-map_metadata", "0", "-c:v", "hevc_videotoolbox", "-q:v", "45", "-tag:v", "hvc1",
                 "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", output.path,
@@ -67,23 +67,23 @@ public enum FileToolEngine {
             try await runMedia(args, source: source, output: output, progress: progress)
             return [try keepIfSmaller(output, than: source)]
         case (.compress, .pdf):
-            let output = OutputNaming.output(for: source, fileExtension: "pdf", suffix: "gecomprimeerd")
+            let output = OutputNaming.output(for: source, fileExtension: "pdf", suffix: "compressed")
             try PDFConverter.compress(source, into: output)
             return [try keepIfSmaller(output, than: source)]
         case (.cropImage, .image):
-            guard case .crop(let crop) = options else { throw YuzuError.nothingToDo("Kies eerst een kader om bij te snijden.") }
+            guard case .crop(let crop) = options else { throw YuzuError.nothingToDo("Choose a crop area first.") }
             return [try cropImage(source, options: crop, settings: settings)]
         case (.trimVideo, .video), (.trimAudio, .audio):
-            guard case .trim(let trim) = options else { throw YuzuError.nothingToDo("Kies eerst een begin en een eind.") }
+            guard case .trim(let trim) = options else { throw YuzuError.nothingToDo("Choose a start and an end first.") }
             return [try await self.trim(source, options: trim, isVideo: category == .video, progress: progress)]
         case (.removeMetadata, .image):
             return [try stripImageMetadata(source)]
         case (.removeMetadata, .pdf):
-            let output = OutputNaming.output(for: source, fileExtension: "pdf", suffix: "zonder metadata")
+            let output = OutputNaming.output(for: source, fileExtension: "pdf", suffix: "no metadata")
             try PDFConverter.removeMetadata(source, into: output)
             return [output]
         case (.removeMetadata, .audio), (.removeMetadata, .video):
-            let output = OutputNaming.output(for: source, fileExtension: ext, suffix: "zonder metadata")
+            let output = OutputNaming.output(for: source, fileExtension: ext, suffix: "no metadata")
             let args = FFmpegArguments.base(input: source) + [
                 "-map", "0", "-map_metadata", "-1", "-map_chapters", "-1", "-c", "copy", output.path,
             ]
@@ -92,13 +92,13 @@ public enum FileToolEngine {
         case (.splitPDF, .pdf):
             return [try PDFConverter.split(source)]
         case (.muteVideo, .video):
-            let output = OutputNaming.output(for: source, fileExtension: ext, suffix: "gedempt")
+            let output = OutputNaming.output(for: source, fileExtension: ext, suffix: "muted")
             let args = FFmpegArguments.base(input: source) + ["-map_metadata", "0", "-c:v", "copy", "-an", output.path]
             try await runMedia(args, source: source, output: output, progress: progress)
             return [output]
         case (.normalizeAudio, _):
             let format = ConversionFormat.matching(source).flatMap { $0.isAudioFormat || $0.isVideoFormat ? $0 : nil } ?? .m4a
-            let output = OutputNaming.output(for: source, fileExtension: format.fileExtension, suffix: "genormaliseerd")
+            let output = OutputNaming.output(for: source, fileExtension: format.fileExtension, suffix: "normalized")
             var args = FFmpegArguments.base(input: source) + ["-map_metadata", "0", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11"]
             if category == .video { args += ["-c:v", "copy"] }
             args += FFmpegArguments.audioCodec(for: format, quality: .high, encoders: [])
@@ -108,7 +108,7 @@ public enum FileToolEngine {
         case (.extractArchive, .archive):
             return [try await ArchiveConverter.extractNextToSource(source)]
         default:
-            throw YuzuError.unsupported("\(tool.displayName) voor \(source.lastPathComponent)")
+            throw YuzuError.unsupported("\(tool.displayName) for \(source.lastPathComponent)")
         }
     }
 
@@ -132,20 +132,20 @@ public enum FileToolEngine {
     static func keepIfSmaller(_ output: URL, than source: URL) throws -> URL {
         if fileSize(output) >= fileSize(source) {
             try? FileManager.default.removeItem(at: output)
-            throw YuzuError.nothingToDo("\(source.lastPathComponent) is al zo klein als het kan worden.")
+            throw YuzuError.nothingToDo("\(source.lastPathComponent) is already as small as it can get.")
         }
         return output
     }
 
-    /// Lossy formaten opnieuw coderen; lossless formaten naar JPEG (zonder alfa) of HEIC (met alfa).
-    /// Met `targetBytes` zoekt het de hoogste kwaliteit die past en verkleint het zo nodig de afmetingen.
+    /// Re-encodes lossy formats; lossless formats become JPEG (without alpha) or HEIC (with alpha).
+    /// With `targetBytes` it searches for the highest quality that fits and shrinks the dimensions if needed.
     static func compressImage(_ source: URL, targetBytes: Int64? = nil) throws -> URL {
         let (image, properties) = try ImageConverter.loadOriented(source)
         var format = ConversionFormat.matching(source) ?? .jpg
         if ![.jpg, .heic, .avif].contains(format) || !ImageCapabilities.canWriteNatively(format) {
             format = image.hasAlpha && ImageCapabilities.canWriteNatively(.heic) ? .heic : .jpg
         }
-        let output = OutputNaming.output(for: source, fileExtension: format.fileExtension, suffix: "gecomprimeerd")
+        let output = OutputNaming.output(for: source, fileExtension: format.fileExtension, suffix: "compressed")
         if let targetBytes {
             let data = try ImageSizeFitter.encode(image, properties: properties, format: format, targetBytes: targetBytes,
                                                   name: source.lastPathComponent)
@@ -156,13 +156,13 @@ public enum FileToolEngine {
         return try keepIfSmaller(output, than: source)
     }
 
-    /// Verwijdert EXIF/GPS/IPTC/XMP zonder het beeld opnieuw te coderen.
+    /// Removes EXIF/GPS/IPTC/XMP without re-encoding the image.
     static func stripImageMetadata(_ source: URL) throws -> URL {
         guard let imageSource = CGImageSourceCreateWithURL(source as CFURL, nil),
               let type = CGImageSourceGetType(imageSource) else {
             throw YuzuError.unreadable(source.lastPathComponent)
         }
-        let output = OutputNaming.output(for: source, fileExtension: source.pathExtension, suffix: "zonder metadata")
+        let output = OutputNaming.output(for: source, fileExtension: source.pathExtension, suffix: "no metadata")
         guard let destination = CGImageDestinationCreateWithURL(output as CFURL, type, 1, nil) else {
             throw YuzuError.writeFailed(output.lastPathComponent)
         }
@@ -177,7 +177,7 @@ public enum FileToolEngine {
         ]
         var error: Unmanaged<CFError>?
         if !CGImageDestinationCopyImageSource(destination, imageSource, options as CFDictionary, &error) {
-            // Niet elk formaat ondersteunt kopiëren zonder hercodering; dan opnieuw schrijven zonder eigenschappen.
+            // Not every format supports copying without re-encoding; in that case, rewrite it without properties.
             try? FileManager.default.removeItem(at: output)
             let (image, _) = try ImageConverter.loadOriented(source)
             let format = ConversionFormat.matching(source) ?? .png

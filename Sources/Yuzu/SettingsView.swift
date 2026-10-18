@@ -29,16 +29,16 @@ struct SettingsView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Sleep een bestand, tik een toets en laat los op het wiel.")
+                    Text("Drag a file, tap a key and drop it on the wheel.")
                         .font(.headline)
-                    Text("Alles gebeurt lokaal op je Mac. De uitvoer komt naast het origineel te staan.")
+                    Text("Everything happens locally on your Mac. The output is saved next to the original.")
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
-                Toggle("Yuzu is actief", isOn: $settings.isEnabled)
+                Toggle("Yuzu is enabled", isOn: $settings.isEnabled)
             }
 
-            Section("Sneltoetsen tijdens het slepen") {
+            Section("Shortcuts while dragging") {
                 ForEach(WheelKind.allCases, id: \.self) { kind in
                     Picker(kind.displayName, selection: binding(for: kind)) {
                         ForEach(AppSettings.modifierChoices, id: \.rawValue) { modifiers in
@@ -47,21 +47,21 @@ struct SettingsView: View {
                     }
                 }
                 if !settings.conflictingKinds.isEmpty {
-                    Label("Twee wielen gebruiken dezelfde toets; alleen het eerste opent.", systemImage: "exclamationmark.triangle")
+                    Label("Two wheels use the same key; only the first one opens.", systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
                 }
             }
 
-            Section("Conversie") {
-                Picker("Kwaliteit", selection: $settings.quality) {
+            Section("Conversion") {
+                Picker("Quality", selection: $settings.quality) {
                     ForEach(Quality.allCases, id: \.self) { Text($0.displayName).tag($0) }
                 }
-                Toggle("Metadata behouden (EXIF, locatie, tags)", isOn: $settings.preserveMetadata)
+                Toggle("Keep metadata (EXIF, location, tags)", isOn: $settings.preserveMetadata)
             }
 
-            Section("Algemeen") {
-                Toggle("Geluiden", isOn: $settings.playsSounds)
-                Toggle("Start bij inloggen", isOn: Binding(
+            Section("General") {
+                Toggle("Sounds", isOn: $settings.playsSounds)
+                Toggle("Launch at login", isOn: Binding(
                     get: { settings.launchesAtLogin },
                     set: { enabled in
                         do {
@@ -75,7 +75,7 @@ struct SettingsView: View {
                 if let loginError {
                     Text(loginError).font(.caption).foregroundStyle(.red)
                 }
-                LabeledContent("ffmpeg (audio/video)", value: ToolLocator.find("ffmpeg")?.path ?? "niet gevonden")
+                LabeledContent("ffmpeg (audio/video)", value: ToolLocator.find("ffmpeg")?.path ?? "not found")
                     .font(.caption)
             }
         }

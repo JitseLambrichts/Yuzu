@@ -5,7 +5,7 @@ import ImageIO
 import UniformTypeIdentifiers
 
 public enum ImageConverter {
-    /// Leest een afbeelding met de juiste oriëntatie toegepast, plus de originele eigenschappen.
+    /// Reads an image with its orientation applied, plus the original properties.
     public static func loadOriented(_ url: URL) throws -> (image: CGImage, properties: [CFString: Any]) {
         if let source = CGImageSourceCreateWithURL(url as CFURL, nil), CGImageSourceGetCount(source) > 0 {
             let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] ?? [:]
@@ -22,7 +22,7 @@ public enum ImageConverter {
                 return (image, properties)
             }
         }
-        // Terugval voor formaten die ImageIO niet leest, zoals SVG.
+        // Fallback for formats ImageIO can't read, such as SVG.
         if let image = NSImage(contentsOf: url) {
             var rect = CGRect(origin: .zero, size: image.size)
             if let cgImage = image.cgImage(forProposedRect: &rect, context: nil, hints: nil) {
@@ -32,7 +32,7 @@ public enum ImageConverter {
         throw YuzuError.unreadable(url.lastPathComponent)
     }
 
-    /// Een kleinere versie om te tonen, plus de echte pixelgrootte na oriëntatie (voor het bijsnijkader).
+    /// A smaller version for display, plus the real pixel size after orientation (for the crop area).
     public static func preview(_ url: URL, maxPixelSize: Int = 1600) throws -> (image: CGImage, pixelSize: CGSize) {
         if let source = CGImageSourceCreateWithURL(url as CFURL, nil), CGImageSourceGetCount(source) > 0,
            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
@@ -66,10 +66,10 @@ public enum ImageConverter {
                   format: format, quality: settings.quality.imageQuality, to: output)
     }
 
-    /// Schrijft een CGImage via ImageIO. Oriëntatie is al toegepast, dus die tag wordt op 1 gezet.
+    /// Writes a CGImage through ImageIO. Orientation is already applied, so that tag is set to 1.
     public static func write(_ image: CGImage, properties: [CFString: Any], format: ConversionFormat, quality: Double, to output: URL) throws {
         guard let type = ImageCapabilities.utType(for: format), ImageCapabilities.canWriteNatively(format) else {
-            throw YuzuError.unsupported("\(format.displayName) schrijven op deze Mac")
+            throw YuzuError.unsupported("writing \(format.displayName) on this Mac")
         }
         guard let destination = CGImageDestinationCreateWithURL(output as CFURL, type.identifier as CFString, 1, nil) else {
             throw YuzuError.writeFailed(output.lastPathComponent)
@@ -77,10 +77,10 @@ public enum ImageConverter {
         try add(image, properties: properties, format: format, quality: quality, to: destination, name: output.lastPathComponent)
     }
 
-    /// Zoals `write`, maar in het geheugen; handig om de grootte bij een bepaalde kwaliteit te meten.
+    /// Like `write`, but in memory; handy for measuring the size at a given quality.
     public static func encode(_ image: CGImage, properties: [CFString: Any], format: ConversionFormat, quality: Double) throws -> Data {
         guard let type = ImageCapabilities.utType(for: format), ImageCapabilities.canWriteNatively(format) else {
-            throw YuzuError.unsupported("\(format.displayName) schrijven op deze Mac")
+            throw YuzuError.unsupported("writing \(format.displayName) on this Mac")
         }
         let data = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(data as CFMutableData, type.identifier as CFString, 1, nil) else {
@@ -113,7 +113,7 @@ public enum ImageConverter {
         }
     }
 
-    /// Verkleint (of vergroot) met hoge interpolatie; alfa blijft behouden.
+    /// Scales down (or up) with high-quality interpolation; alpha is preserved.
     public static func scaled(_ image: CGImage, by factor: Double) throws -> CGImage {
         let width = max(Int((Double(image.width) * factor).rounded()), 1)
         let height = max(Int((Double(image.height) * factor).rounded()), 1)
@@ -123,11 +123,11 @@ public enum ImageConverter {
                                       bitmapInfo: alpha.rawValue)
                 ?? CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
                              space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: alpha.rawValue) else {
-            throw YuzuError.writeFailed("afbeelding")
+            throw YuzuError.writeFailed("image")
         }
         context.interpolationQuality = .high
         context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-        guard let result = context.makeImage() else { throw YuzuError.writeFailed("afbeelding") }
+        guard let result = context.makeImage() else { throw YuzuError.writeFailed("image") }
         return result
     }
 
@@ -136,17 +136,17 @@ public enum ImageConverter {
         guard let context = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
                                       bytesPerRow: 0, space: colorSpace,
                                       bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else {
-            throw YuzuError.writeFailed("afbeelding")
+            throw YuzuError.writeFailed("image")
         }
         let rect = CGRect(x: 0, y: 0, width: image.width, height: image.height)
         context.setFillColor(CGColor(gray: 1, alpha: 1))
         context.fill(rect)
         context.draw(image, in: rect)
-        guard let result = context.makeImage() else { throw YuzuError.writeFailed("afbeelding") }
+        guard let result = context.makeImage() else { throw YuzuError.writeFailed("image") }
         return result
     }
 
-    /// WebP via cwebp, voor systemen waar ImageIO geen WebP kan schrijven.
+    /// WebP through cwebp, for systems where ImageIO can't write WebP.
     static func writeWebP(_ source: URL, quality: Quality, preserveMetadata: Bool, output: URL) async throws {
         let cwebp = try ToolLocator.require("cwebp")
         var input = source
@@ -165,7 +165,7 @@ public enum ImageConverter {
                                                    input.path, "-o", output.path])
     }
 
-    /// Eén PDF met een pagina per afbeelding.
+    /// A single PDF with one page per image.
     public static func writePDF(images: [URL], to output: URL) throws {
         guard let context = CGContext(output as CFURL, mediaBox: nil, nil) else {
             throw YuzuError.writeFailed(output.lastPathComponent)

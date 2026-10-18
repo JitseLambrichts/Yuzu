@@ -1,12 +1,12 @@
 import Foundation
 
-/// ZIP/TAR/TAR.GZ maken en ZIP/TAR/GZ/RAR/7z uitpakken met de systeemtools (ditto, bsdtar, gzip).
+/// Creates ZIP/TAR/TAR.GZ and extracts ZIP/TAR/GZ/RAR/7z with the system tools (ditto, bsdtar, gzip).
 public enum ArchiveConverter {
     static let ditto = URL(fileURLWithPath: "/usr/bin/ditto")
     static let tar = URL(fileURLWithPath: "/usr/bin/tar")
     static let gzip = URL(fileURLWithPath: "/usr/bin/gzip")
 
-    /// Archiveert één bestand of map (met de map zelf als bovenste niveau).
+    /// Archives a single file or folder (with the folder itself as the top level).
     public static func create(_ source: URL, format: ConversionFormat, output: URL) async throws {
         let parent = source.deletingLastPathComponent()
         switch format {
@@ -17,11 +17,11 @@ public enum ArchiveConverter {
         case .tgz:
             try await ProcessRunner.runChecked(tar, ["-czf", output.path, "-C", parent.path, source.lastPathComponent])
         default:
-            throw YuzuError.unsupported("archief naar \(format.displayName)")
+            throw YuzuError.unsupported("archive to \(format.displayName)")
         }
     }
 
-    /// Pakt de inhoud van een map in (zonder de map zelf als bovenste niveau).
+    /// Archives the contents of a folder (without the folder itself as the top level).
     static func createFromContents(of folder: URL, format: ConversionFormat, output: URL) async throws {
         switch format {
         case .zip:
@@ -31,7 +31,7 @@ public enum ArchiveConverter {
         case .tgz:
             try await ProcessRunner.runChecked(tar, ["-czf", output.path, "-C", folder.path, "."])
         default:
-            throw YuzuError.unsupported("archief naar \(format.displayName)")
+            throw YuzuError.unsupported("archive to \(format.displayName)")
         }
     }
 
@@ -41,16 +41,16 @@ public enum ArchiveConverter {
         case "zip":
             try await ProcessRunner.runChecked(ditto, ["-x", "-k", archive.path, destination.path])
         case "gz" where !archive.lastPathComponent.lowercased().hasSuffix(".tar.gz"):
-            // Een losse .gz bevat één bestand, geen tar-archief.
+            // A plain .gz holds a single file, not a tar archive.
             let output = destination.appendingPathComponent(archive.deletingPathExtension().lastPathComponent)
             try await ProcessRunner.runChecked(gzip, ["-dc", archive.path], standardOutputFile: output)
         default:
-            // bsdtar herkent tar, tar.gz, bz2, xz, rar en 7z automatisch.
+            // bsdtar recognizes tar, tar.gz, bz2, xz, rar and 7z automatically.
             try await ProcessRunner.runChecked(tar, ["-xf", archive.path, "-C", destination.path])
         }
     }
 
-    /// Pakt uit naar een nieuwe map naast het archief.
+    /// Extracts into a new folder next to the archive.
     public static func extractNextToSource(_ archive: URL) async throws -> URL {
         let folder = try OutputNaming.folder(for: archive, name: OutputNaming.baseName(of: archive))
         do {

@@ -40,7 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // MARK: - Slepen
+    // MARK: - Dragging
 
     private func handle(_ event: DragEvent) {
         switch event {
@@ -48,7 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             break
         case .wheelRequested(let kind):
             let urls = monitor.draggedFileURLs()
-            // Alleen voor bestanden; tekst of andere sleepacties negeren we.
+            // Files only; we ignore text and other drags.
             guard !urls.isEmpty else { return }
             wheel.show(kind: kind, items: WheelItem.items(for: kind, urls: urls), fileCount: urls.count)
         case .dragEnded(let wheelWasOpen):
@@ -59,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func perform(_ item: WheelItem, urls: [URL]) {
-        logger.info("drop op \(item.title, privacy: .public) met \(urls.count) bestand(en)")
+        logger.info("drop on \(item.title, privacy: .public) with \(urls.count) file(s)")
         switch item.payload {
         case .convert(let format):
             convert(urls, to: format)
@@ -74,7 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func convert(_ urls: [URL], to format: ConversionFormat) {
         let conversionSettings = settings.conversionSettings
-        let subject = urls.count == 1 ? urls[0].lastPathComponent : "\(urls.count) bestanden"
+        let subject = urls.count == 1 ? urls[0].lastPathComponent : "\(urls.count) files"
         jobs.start(title: "\(subject) → \(format.displayName)") { progress in
             try await BatchConverter.convert(urls, to: format, settings: conversionSettings, progress: progress)
         }
@@ -82,7 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func run(_ tool: FileTool, on urls: [URL], options: FileToolOptions? = nil) {
         let conversionSettings = settings.conversionSettings
-        let subject = urls.count == 1 ? urls[0].lastPathComponent : "\(urls.count) bestanden"
+        let subject = urls.count == 1 ? urls[0].lastPathComponent : "\(urls.count) files"
         jobs.start(title: "\(tool.displayName): \(subject)") { progress in
             let result = try await FileToolEngine.run(tool, sources: urls, options: options, settings: conversionSettings,
                                                     progress: progress)
@@ -96,19 +96,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // MARK: - Menubalk
+    // MARK: - Menu bar
 
     private func setUpStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(systemSymbolName: "circle.grid.cross", accessibilityDescription: "Yuzu")
         let menu = NSMenu()
 
-        let header = NSMenuItem(title: "Sleep een bestand en tik ⇧, ⌘ of ⌃", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: "Drag a file and tap ⇧, ⌘ or ⌃", action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
         menu.addItem(.separator())
 
-        let enabled = NSMenuItem(title: "Actief", action: #selector(toggleEnabled), keyEquivalent: "")
+        let enabled = NSMenuItem(title: "Enabled", action: #selector(toggleEnabled), keyEquivalent: "")
         enabled.target = self
         enabled.state = settings.isEnabled ? .on : .off
         menu.addItem(enabled)
@@ -119,11 +119,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(float)
         menu.addItem(.separator())
 
-        let preferences = NSMenuItem(title: "Instellingen…", action: #selector(openSettings), keyEquivalent: ",")
+        let preferences = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         preferences.target = self
         menu.addItem(preferences)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Stop Yuzu", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit Yuzu", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
         item.menu = menu
         statusItem = item

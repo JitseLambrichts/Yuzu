@@ -1,6 +1,6 @@
 import Foundation
 
-/// Modifier-toetsen, los van AppKit/CoreGraphics zodat de state machine testbaar blijft.
+/// Modifier keys, independent of AppKit/CoreGraphics so the state machine stays testable.
 public struct ModifierSet: OptionSet, Hashable, Sendable, Codable {
     public let rawValue: Int
     public init(rawValue: Int) { self.rawValue = rawValue }
@@ -10,7 +10,7 @@ public struct ModifierSet: OptionSet, Hashable, Sendable, Codable {
     public static let option = ModifierSet(rawValue: 1 << 2)
     public static let command = ModifierSet(rawValue: 1 << 3)
 
-    /// Weergave in de gebruikelijke macOS-volgorde: ⌃⌥⇧⌘.
+    /// Rendered in the usual macOS order: ⌃⌥⇧⌘.
     public var symbols: String {
         var result = ""
         if contains(.control) { result += "⌃" }
@@ -26,9 +26,9 @@ public enum WheelKind: String, CaseIterable, Codable, Sendable {
 
     public var displayName: String {
         switch self {
-        case .convert: return "Converteren"
+        case .convert: return "Convert"
         case .tools: return "Tools"
-        case .actions: return "Acties"
+        case .actions: return "Actions"
         }
     }
 
@@ -41,7 +41,7 @@ public enum WheelKind: String, CaseIterable, Codable, Sendable {
     }
 }
 
-/// Eén meting van de invoerstatus, door de app periodiek opgehaald.
+/// A single sample of the input state, polled periodically by the app.
 public struct InputSnapshot: Sendable {
     public var time: TimeInterval
     public var primaryButtonDown: Bool
@@ -65,12 +65,12 @@ public enum DragEvent: Equatable, Sendable {
     case cancelled
 }
 
-/// Herkent "tijdens het slepen een modifier tikken" zonder event taps of Accessibility-rechten.
+/// Detects "tapping a modifier while dragging" without event taps or Accessibility permissions.
 ///
-/// Een drag wordt herkend doordat de `changeCount` van het drag-pasteboard verandert terwijl de
-/// muisknop ingedrukt is. Het wiel opent vanuit "geen modifiers" op twee manieren:
-/// - tik: exact de ingestelde combinatie indrukken en binnen `tapMaxDuration` weer loslaten;
-/// - vasthouden: exact de combinatie minstens `holdTriggerDelay` ingedrukt houden.
+/// A drag is detected when the `changeCount` of the drag pasteboard changes while the mouse
+/// button is down. Starting from "no modifiers", the wheel opens in two ways:
+/// - tap: press exactly the configured combination and release it within `tapMaxDuration`;
+/// - hold: keep exactly the combination pressed for at least `holdTriggerDelay`.
 public struct DragStateMachine: Sendable {
     public enum Phase: Equatable, Sendable {
         case idle
@@ -98,7 +98,7 @@ public struct DragStateMachine: Sendable {
         self.holdTriggerDelay = holdTriggerDelay
     }
 
-    /// Of er een muis-/sleepactie bezig is; de app pollt dan sneller.
+    /// Whether a mouse or drag action is in progress; the app polls faster then.
     public var isActive: Bool { phase != .idle }
 
     public mutating func step(_ snapshot: InputSnapshot) -> [DragEvent] {
@@ -108,7 +108,7 @@ public struct DragStateMachine: Sendable {
                 lastIdleChangeCount = snapshot.dragChangeCount
                 return []
             }
-            // De drag kan al tussen twee metingen begonnen zijn; vergelijk met de laatste waarde vóór mouse-down.
+            // The drag may have started between two samples; compare with the last value before mouse-down.
             let baseline = lastIdleChangeCount ?? snapshot.dragChangeCount
             phase = .mouseDown(baseline: baseline)
             if snapshot.dragChangeCount != baseline {
@@ -155,7 +155,7 @@ public struct DragStateMachine: Sendable {
     private mutating func beginDrag(_ snapshot: InputSnapshot) -> [DragEvent] {
         phase = .dragging
         resetTap()
-        // Modifiers die al vastzaten bij de start tellen niet als tik.
+        // Modifiers that were already held at the start don't count as a tap.
         ignoreUntilModifiersReleased = !snapshot.modifiers.isEmpty
         return [.dragStarted]
     }
@@ -186,14 +186,14 @@ public struct DragStateMachine: Sendable {
         }
         if !modifiers.isEmpty {
             tapPeak.formUnion(modifiers)
-            // Vastgehouden combinatie: open zodra die stabiel is, en wacht daarna tot alles los is.
+            // Held combination: open once it is stable, then wait until everything is released.
             if modifiers == tapPeak, snapshot.time - start >= holdTriggerDelay, let kind = wheel(for: modifiers) {
                 resetTap()
                 ignoreUntilModifiersReleased = true
                 return kind
             }
             if snapshot.time - start > tapMaxDuration {
-                // Te lang vastgehouden zonder geldige combinatie: wacht tot alles los is.
+                // Held too long without a valid combination: wait until everything is released.
                 resetTap()
                 ignoreUntilModifiersReleased = true
             }

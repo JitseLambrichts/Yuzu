@@ -1,7 +1,7 @@
 import AVFoundation
 import Foundation
 
-/// Bouwt ffmpeg-argumenten. Los van het uitvoeren, zodat het testbaar is.
+/// Builds ffmpeg arguments, separate from running them so they are testable.
 public enum FFmpegArguments {
     public static func base(input: URL) -> [String] {
         ["-hide_banner", "-nostdin", "-y", "-progress", "pipe:1", "-nostats", "-i", input.path]
@@ -30,7 +30,7 @@ public enum FFmpegArguments {
         }
     }
 
-    /// Volledige argumentenlijst voor een conversie naar `format`.
+    /// Full argument list for a conversion to `format`.
     public static func conversion(input: URL, output: URL, format: ConversionFormat, quality: Quality,
                                   preserveMetadata: Bool, encoders: Set<String> = []) -> [String] {
         var args = base(input: input)
@@ -40,7 +40,7 @@ public enum FFmpegArguments {
         return args
     }
 
-    /// Codec-argumenten (video en audio) voor een doelcontainer.
+    /// Codec arguments (video and audio) for a target container.
     public static func codecArguments(for format: ConversionFormat, quality: Quality, encoders: Set<String> = []) -> [String] {
         var args: [String] = []
         let videoQuality: String
@@ -76,7 +76,7 @@ public enum FFmpegArguments {
         return args
     }
 
-    /// Een stuk uit audio of video. `-ss` vóór `-i` zoekt snel; bij hercoderen blijft de start toch frame-exact.
+    /// A section of audio or video. `-ss` before `-i` seeks fast; when re-encoding, the start is still frame-accurate.
     public static func trim(input: URL, output: URL, options: TrimOptions, format: ConversionFormat?, isVideo: Bool,
                             encoders: Set<String> = []) -> [String] {
         var args = ["-hide_banner", "-nostdin", "-y", "-progress", "pipe:1", "-nostats",
@@ -93,7 +93,7 @@ public enum FFmpegArguments {
         return args
     }
 
-    /// Video naar MP4 (HEVC) met een vaste bitrate uit `CompressionPlanner`.
+    /// Video to MP4 (HEVC) with a fixed bitrate from `CompressionPlanner`.
     public static func compressVideo(input: URL, output: URL, plan: CompressionPlanner.VideoPlan) -> [String] {
         let kbps = max(plan.videoBitrate / 1000, 1)
         var args = base(input: input) + ["-map_metadata", "0"]
@@ -113,7 +113,7 @@ public enum FFmpegArguments {
 }
 
 public enum MediaConverter {
-    /// Encoders van de gevonden ffmpeg, eenmalig opgevraagd.
+    /// Encoders of the ffmpeg that was found, queried once.
     nonisolated(unsafe) private static var cachedEncoders: Set<String>?
 
     static func encoders(ffmpeg: URL) async -> Set<String> {
@@ -134,7 +134,7 @@ public enum MediaConverter {
         return seconds > 0 ? seconds : nil
     }
 
-    /// Voert ffmpeg uit en meldt voortgang (0...1) op basis van `out_time_us`.
+    /// Runs ffmpeg and reports progress (0...1) based on `out_time_us`.
     public static func runFFmpeg(_ arguments: [String], duration: Double?, progress: @escaping @Sendable (Double) -> Void) async throws {
         let ffmpeg = try ToolLocator.require("ffmpeg")
         try await ProcessRunner.runChecked(ffmpeg, arguments) { line in

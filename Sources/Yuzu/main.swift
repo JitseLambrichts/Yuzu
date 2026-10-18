@@ -7,7 +7,7 @@ MainActor.assumeIsolated {
     }
     let delegate = AppDelegate()
     app.delegate = delegate
-    // Menubalk-app zonder Dock-icoon.
+    // Menu bar app without a Dock icon.
     app.setActivationPolicy(.accessory)
     app.run()
 }

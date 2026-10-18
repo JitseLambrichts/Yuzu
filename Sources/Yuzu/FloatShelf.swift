@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Zwevende plank waar je bestanden even "parkeert" en er later weer uit sleept.
+/// Floating shelf where you "park" files for a moment and drag them out again later.
 @MainActor
 final class FloatShelfController: ObservableObject {
     @Published private(set) var urls: [URL] = []
@@ -57,7 +57,7 @@ private struct FloatShelfView: View {
             if shelf.urls.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "tray.and.arrow.down").font(.system(size: 28)).foregroundStyle(.secondary)
-                    Text("Sleep bestanden hierheen").foregroundStyle(.secondary)
+                    Text("Drop files here").foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -82,10 +82,10 @@ private struct FloatShelfView: View {
                 }
                 .listStyle(.plain)
                 HStack {
-                    Text(shelf.urls.count == 1 ? "1 onderdeel" : "\(shelf.urls.count) onderdelen")
+                    Text(shelf.urls.count == 1 ? "1 item" : "\(shelf.urls.count) items")
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
-                    Button("Leegmaken") { shelf.clear() }.controlSize(.small)
+                    Button("Clear") { shelf.clear() }.controlSize(.small)
                 }
                 .padding(8)
             }

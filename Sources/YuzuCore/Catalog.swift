@@ -1,6 +1,6 @@
 import Foundation
 
-/// Kwaliteitsniveau voor lossy conversies.
+/// Quality level for lossy conversions.
 public enum Quality: String, CaseIterable, Codable, Sendable {
     case compact, balanced, high
 
@@ -15,8 +15,8 @@ public enum Quality: String, CaseIterable, Codable, Sendable {
     public var displayName: String {
         switch self {
         case .compact: return "Compact"
-        case .balanced: return "Gebalanceerd"
-        case .high: return "Hoog"
+        case .balanced: return "Balanced"
+        case .high: return "High"
         }
     }
 }
@@ -31,24 +31,24 @@ public struct ConversionSettings: Sendable, Equatable {
     }
 }
 
-/// Tools uit het ⌘-wiel. De meeste werken zonder venster; tools met `hasOptionsPanel` vragen eerst om instellingen.
+/// Tools on the ⌘ wheel. Most run without a window; tools with `hasOptionsPanel` ask for settings first.
 public enum FileTool: String, CaseIterable, Sendable, Codable {
     case compress, cropImage, trimVideo, trimAudio, removeMetadata, createPDF, mergePDF, splitPDF, muteVideo, normalizeAudio,
          extractArchive, readQRCode
 
     public var displayName: String {
         switch self {
-        case .compress: return "Comprimeer"
-        case .cropImage: return "Bijsnijden"
-        case .trimVideo, .trimAudio: return "Inkorten"
-        case .removeMetadata: return "Metadata weg"
-        case .createPDF: return "Maak PDF"
-        case .mergePDF: return "Voeg samen"
-        case .splitPDF: return "Splits PDF"
-        case .muteVideo: return "Dempen"
-        case .normalizeAudio: return "Normaliseer"
-        case .extractArchive: return "Uitpakken"
-        case .readQRCode: return "Lees QR"
+        case .compress: return "Compress"
+        case .cropImage: return "Crop"
+        case .trimVideo, .trimAudio: return "Trim"
+        case .removeMetadata: return "Remove Metadata"
+        case .createPDF: return "Create PDF"
+        case .mergePDF: return "Merge"
+        case .splitPDF: return "Split PDF"
+        case .muteVideo: return "Mute"
+        case .normalizeAudio: return "Normalize"
+        case .extractArchive: return "Extract"
+        case .readQRCode: return "Read QR"
         }
     }
 
@@ -69,7 +69,7 @@ public enum FileTool: String, CaseIterable, Sendable, Codable {
         }
     }
 
-    /// Of de tool na de drop een optiepaneel opent (en dus `FileToolOptions` verwacht).
+    /// Whether the tool opens an options panel after the drop (and therefore expects `FileToolOptions`).
     public var hasOptionsPanel: Bool {
         switch self {
         case .compress, .cropImage, .trimVideo, .trimAudio: return true
@@ -77,7 +77,7 @@ public enum FileTool: String, CaseIterable, Sendable, Codable {
         }
     }
 
-    /// Of de tool op deze selectie van toepassing is.
+    /// Whether the tool applies to this selection.
     public func applies(to categories: [FileCategory]) -> Bool {
         guard !categories.isEmpty else { return false }
         func all(_ allowed: Set<FileCategory>) -> Bool { categories.allSatisfy(allowed.contains) }
@@ -98,7 +98,7 @@ public enum FileTool: String, CaseIterable, Sendable, Codable {
     }
 }
 
-/// Acties uit het ⌃-wiel; werken op elk bestand of elke map.
+/// Actions on the ⌃ wheel; they work on any file or folder.
 public enum FileAction: String, CaseIterable, Sendable, Codable {
     case airDrop, float, copy, move, copyPath, openTerminal
 
@@ -106,9 +106,9 @@ public enum FileAction: String, CaseIterable, Sendable, Codable {
         switch self {
         case .airDrop: return "AirDrop"
         case .float: return "Float"
-        case .copy: return "Kopieer"
-        case .move: return "Verplaats"
-        case .copyPath: return "Kopieer pad"
+        case .copy: return "Copy"
+        case .move: return "Move"
+        case .copyPath: return "Copy Path"
         case .openTerminal: return "Terminal"
         }
     }
@@ -126,7 +126,7 @@ public enum FileAction: String, CaseIterable, Sendable, Codable {
 }
 
 public enum ConversionCatalog {
-    /// Doelformaten per bron-categorie, in de volgorde waarin ze op het wiel staan.
+    /// Target formats per source category, in the order they appear on the wheel.
     public static func targets(for category: FileCategory) -> [ConversionFormat] {
         switch category {
         case .image:
@@ -144,7 +144,7 @@ public enum ConversionCatalog {
         }
     }
 
-    /// Formaten die geldig zijn voor álle bestanden in de selectie, met weglating van het eigen formaat.
+    /// Formats that are valid for every file in the selection, leaving out the files' own format.
     public static func targets(for urls: [URL]) -> [ConversionFormat] {
         guard let first = urls.first else { return [] }
         var result = targets(for: FileCategory.of(first))

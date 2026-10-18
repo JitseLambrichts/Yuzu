@@ -1,6 +1,6 @@
 import Foundation
 
-/// CSV/TSV en een minimale XLSX-lezer en -schrijver (eerste werkblad, waarden zonder opmaak).
+/// CSV/TSV plus a minimal XLSX reader and writer (first worksheet, values without formatting).
 public enum SpreadsheetConverter {
     public typealias Table = [[String]]
 
@@ -60,7 +60,7 @@ public enum SpreadsheetConverter {
         }.joined(separator: "\n") + "\n"
     }
 
-    // MARK: - XLSX schrijven
+    // MARK: - Writing XLSX
 
     static func columnName(_ index: Int) -> String {
         var index = index + 1
@@ -73,7 +73,7 @@ public enum SpreadsheetConverter {
         return name
     }
 
-    /// Alleen "echte" getallen als getal opslaan; codes met voorloopnullen blijven tekst.
+    /// Only stores "real" numbers as numbers; codes with leading zeros stay text.
     static func isNumeric(_ value: String) -> Bool {
         guard value.range(of: #"^-?(0|[1-9][0-9]*)(\.[0-9]+)?$"#, options: .regularExpression) != nil else { return false }
         return value.count <= 15
@@ -122,7 +122,7 @@ public enum SpreadsheetConverter {
             """,
             "xl/workbook.xml": """
             <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-            <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Blad1" sheetId="1" r:id="rId1"/></sheets></workbook>
+            <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>
             """,
             "xl/_rels/workbook.xml.rels": """
             <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -137,7 +137,7 @@ public enum SpreadsheetConverter {
         try await ProcessRunner.runChecked(URL(fileURLWithPath: "/usr/bin/zip"), ["-q", "-X", "-r", output.path, "."], currentDirectory: root)
     }
 
-    // MARK: - XLSX lezen
+    // MARK: - Reading XLSX
 
     public static func readXLSX(_ url: URL) async throws -> Table {
         let fm = FileManager.default
@@ -172,11 +172,11 @@ public enum SpreadsheetConverter {
         case .csv: try delimited(table, delimiter: ",").write(to: output, atomically: true, encoding: .utf8)
         case .tsv: try delimited(table, delimiter: "\t").write(to: output, atomically: true, encoding: .utf8)
         case .xlsx: try await writeXLSX(table, to: output)
-        default: throw YuzuError.unsupported("spreadsheet naar \(format.displayName)")
+        default: throw YuzuError.unsupported("spreadsheet to \(format.displayName)")
         }
     }
 
-    /// Europese CSV's gebruiken vaak `;` als scheidingsteken.
+    /// European CSV files often use `;` as the delimiter.
     static func detectDelimiter(_ text: String) -> Character {
         let firstLine = text.prefix { $0 != "\n" }
         return firstLine.filter { $0 == ";" }.count > firstLine.filter { $0 == "," }.count ? ";" : ","

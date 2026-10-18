@@ -10,17 +10,17 @@ public enum YuzuError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .unsupported(let detail): return "Niet ondersteund: \(detail)"
-        case .missingTool(let tool): return "\(tool) is niet gevonden. Installeer het met Homebrew (brew install \(tool)) of leg het in Yuzu.app/Contents/Resources/Tools."
-        case .processFailed(let tool, let message): return "\(tool) is mislukt: \(message)"
-        case .unreadable(let name): return "Kon \(name) niet lezen."
-        case .writeFailed(let name): return "Kon \(name) niet schrijven."
+        case .unsupported(let detail): return "Not supported: \(detail)"
+        case .missingTool(let tool): return "\(tool) was not found. Install it with Homebrew (brew install \(tool)) or put it in Yuzu.app/Contents/Resources/Tools."
+        case .processFailed(let tool, let message): return "\(tool) failed: \(message)"
+        case .unreadable(let name): return "Couldn't read \(name)."
+        case .writeFailed(let name): return "Couldn't write \(name)."
         case .nothingToDo(let detail): return detail
         }
     }
 }
 
-/// Zoekt externe hulpprogramma's: eerst in de app-bundel, daarna in de gangbare Homebrew-paden.
+/// Finds external helper tools: first in the app bundle, then in the usual Homebrew paths.
 public enum ToolLocator {
     public static func find(_ name: String) -> URL? {
         var candidates: [URL] = []
@@ -45,7 +45,7 @@ public struct ProcessResult: Sendable {
     public var stderr: String
 }
 
-/// Verzamelt pipe-uitvoer thread-safe en splitst die optioneel in regels.
+/// Collects pipe output in a thread-safe way and optionally splits it into lines.
 private final class OutputCollector: @unchecked Sendable {
     private let lock = NSLock()
     private var data = Data()
@@ -81,7 +81,7 @@ private final class OutputCollector: @unchecked Sendable {
 }
 
 public enum ProcessRunner {
-    /// Start een proces en wacht asynchroon op het einde. Annuleren van de Task beëindigt het proces.
+    /// Starts a process and waits asynchronously for it to finish. Cancelling the Task terminates the process.
     @discardableResult
     public static func run(_ executable: URL,
                            _ arguments: [String],
@@ -139,7 +139,7 @@ public enum ProcessRunner {
         }
     }
 
-    /// Zoals `run`, maar gooit een fout bij een exit-status ongelijk aan 0.
+    /// Like `run`, but throws when the exit status is not 0.
     @discardableResult
     public static func runChecked(_ executable: URL,
                                   _ arguments: [String],
@@ -152,7 +152,7 @@ public enum ProcessRunner {
         guard result.status == 0 else {
             let lastLines = result.stderr.split(separator: "\n").suffix(3).joined(separator: " ")
             throw YuzuError.processFailed(tool: executable.lastPathComponent,
-                                          message: lastLines.isEmpty ? "exit-status \(result.status)" : lastLines)
+                                          message: lastLines.isEmpty ? "exit status \(result.status)" : lastLines)
         }
         return result
     }

@@ -12,7 +12,7 @@ enum TestFiles {
         return url
     }
 
-    /// Een PNG met kleurvlakken en optioneel EXIF/GPS-metadata (in een JPEG).
+    /// A PNG with color blocks and optional EXIF/GPS metadata (in a JPEG).
     static func makeImage(in dir: URL, name: String = "sample.png", type: UTType = .png, alpha: Bool = false, metadata: Bool = false) throws -> URL {
         let width = 120, height = 80
         let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
@@ -27,7 +27,7 @@ enum TestFiles {
         let destination = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil)!
         var properties: [CFString: Any] = [:]
         if metadata {
-            properties[kCGImagePropertyExifDictionary] = [kCGImagePropertyExifUserComment: "geheim"]
+            properties[kCGImagePropertyExifDictionary] = [kCGImagePropertyExifUserComment: "secret"]
             properties[kCGImagePropertyGPSDictionary] = [kCGImagePropertyGPSLatitude: 51.2, kCGImagePropertyGPSLatitudeRef: "N"]
         }
         CGImageDestinationAddImage(destination, image, properties as CFDictionary)
@@ -35,7 +35,7 @@ enum TestFiles {
         return url
     }
 
-    /// Een PNG met willekeurige pixels: groot en slecht comprimeerbaar.
+    /// A PNG with random pixels: large and hard to compress.
     static func makeNoiseImage(in dir: URL, width: Int = 600, height: Int = 400) throws -> URL {
         var generator = SystemRandomNumberGenerator()
         var bytes = [UInt8](repeating: 255, count: width * height * 4)
@@ -45,7 +45,7 @@ enum TestFiles {
         let context = CGContext(data: &bytes, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
                                 space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
         let image = context.makeImage()!
-        let url = dir.appendingPathComponent("ruis.png")
+        let url = dir.appendingPathComponent("noise.png")
         let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)!
         CGImageDestinationAddImage(destination, image, nil)
         precondition(CGImageDestinationFinalize(destination))

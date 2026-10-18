@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import PDFKit
 
-/// Tekstdocumenten via NSAttributedString (DOCX, DOC, RTF, RTFD, ODT, HTML, TXT, Markdown) en PDF-export.
+/// Text documents through NSAttributedString (DOCX, DOC, RTF, RTFD, ODT, HTML, TXT, Markdown) and PDF export.
 public enum DocumentConverter {
     public static func read(_ url: URL) async throws -> NSAttributedString {
         let ext = SourceExtension.normalized(url)
@@ -13,7 +13,7 @@ public enum DocumentConverter {
         case "md", "markdown":
             return Markdown.attributedString(from: try readText(url))
         case "html", "htm", "webarchive":
-            // De HTML-importer gebruikt WebKit en moet op de main thread draaien.
+            // The HTML importer uses WebKit and must run on the main thread.
             let type: NSAttributedString.DocumentType = ext == "webarchive" ? .webArchive : .html
             return try await MainActor.run {
                 UncheckedSendable(try NSAttributedString(url: url, options: [.documentType: type, .characterEncoding: String.Encoding.utf8.rawValue],
@@ -25,7 +25,7 @@ public enum DocumentConverter {
             let types: [String: NSAttributedString.DocumentType] = [
                 "docx": .officeOpenXML, "doc": .docFormat, "rtf": .rtf, "rtfd": .rtfd, "odt": .openDocument,
             ]
-            guard let type = types[ext] else { throw YuzuError.unsupported(".\(ext) lezen") }
+            guard let type = types[ext] else { throw YuzuError.unsupported("reading .\(ext)") }
             do {
                 return try NSAttributedString(url: url, options: [.documentType: type], documentAttributes: nil)
             } catch {
@@ -58,7 +58,7 @@ public enum DocumentConverter {
             let data = try text.data(from: range, documentAttributes: [.documentType: types[format]!])
             try data.write(to: output, options: .atomic)
         default:
-            throw YuzuError.unsupported("document naar \(format.displayName)")
+            throw YuzuError.unsupported("document to \(format.displayName)")
         }
     }
 
@@ -68,7 +68,7 @@ public enum DocumentConverter {
     }
 }
 
-/// Paginaopmaak van een NSAttributedString naar PDF via TextKit, inclusief afbeeldingen en tabellen.
+/// Lays out an NSAttributedString as PDF pages through TextKit, including images and tables.
 @MainActor
 public enum PDFTextRenderer {
     public static func render(_ text: NSAttributedString, to output: URL,
@@ -112,7 +112,7 @@ public enum PDFTextRenderer {
     }
 }
 
-/// Draagt een niet-Sendable waarde over naar/van de main actor; alleen voor waarden die daarna niet meer gedeeld worden.
+/// Moves a non-Sendable value to/from the main actor; only for values that aren't shared afterwards.
 struct UncheckedSendable<Value>: @unchecked Sendable {
     let value: Value
     init(_ value: Value) { self.value = value }

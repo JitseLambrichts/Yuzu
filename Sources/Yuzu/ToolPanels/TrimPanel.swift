@@ -14,9 +14,9 @@ final class TrimModel: ObservableObject {
     @Published private(set) var peaks: [Float] = []
     @Published private(set) var isPlaying = false
     @Published private(set) var player: AVPlayer?
-    /// Of er afgespeeld kan worden; in de previews zonder echte speler toch `true`.
+    /// Whether playback is possible; `true` in the previews even without a real player.
     @Published private(set) var canPlay = false
-    /// Stilstaand beeld als er geen speler is (previews of formaten die AVFoundation niet afspeelt).
+    /// Still image when there is no player (previews, or formats AVFoundation can't play).
     @Published private(set) var stillImage: CGImage?
     @Published var start: Double = 0
     @Published var end: Double = 0
@@ -33,7 +33,7 @@ final class TrimModel: ObservableObject {
         Task { await load(url) }
     }
 
-    /// Voor de previews: vaste duur, golfvorm en beeld.
+    /// For the previews: fixed duration, waveform and image.
     init(previewDuration: Double, isVideo: Bool, still: CGImage?, peaks: [Float]) {
         url = nil
         self.isVideo = isVideo
@@ -89,7 +89,7 @@ final class TrimModel: ObservableObject {
     private func playerAdvanced(to seconds: Double) {
         guard seconds.isFinite else { return }
         currentTime = seconds
-        // Afspelen stopt aan het eind van de selectie en begint daarna opnieuw bij het begin.
+        // Playback stops at the end of the selection and then starts again from its beginning.
         if isPlaying, seconds >= end {
             player?.pause()
             isPlaying = false
@@ -159,13 +159,13 @@ struct TrimPanel: View {
             VStack(spacing: 12) {
                 TrimTimeline(model: model).frame(height: model.isVideo ? 56 : 64)
                 transport
-                Toggle("Nauwkeurig knippen (opnieuw coderen)", isOn: $model.reencode)
-                    .help("Uit: sneller en zonder kwaliteitsverlies, maar het begin valt op het dichtstbijzijnde keyframe.")
+                Toggle("Frame-accurate cut (re-encode)", isOn: $model.reencode)
+                    .help("Off: faster and lossless, but the start snaps to the nearest keyframe.")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(16)
 
-            OptionsFooter(summary: "Lengte \(Timecode.string(from: model.end - model.start)) van \(Timecode.string(from: model.duration))",
+            OptionsFooter(summary: "Length \(Timecode.string(from: model.end - model.start)) of \(Timecode.string(from: model.duration))",
                           canApply: model.canApply, onCancel: onCancel) {
                 model.stop()
                 onApply(.trim(model.options))
@@ -178,7 +178,7 @@ struct TrimPanel: View {
         if !model.isLoaded {
             ProgressView()
         } else if model.duration <= 0 {
-            PanelNotice(text: "Kon de duur van dit bestand niet bepalen.")
+            PanelNotice(text: "Couldn't determine the duration of this file.")
         } else if model.isVideo {
             ZStack {
                 Color.black
@@ -187,7 +187,7 @@ struct TrimPanel: View {
                 } else if let still = model.stillImage {
                     Image(decorative: still, scale: 1).resizable().aspectRatio(contentMode: .fit)
                 } else {
-                    PanelNotice(text: "Geen voorbeeld voor dit formaat; inkorten werkt wel.", systemImage: "eye.slash")
+                    PanelNotice(text: "No preview for this format, but trimming works.", systemImage: "eye.slash")
                         .foregroundStyle(.white).padding()
                 }
             }
@@ -199,7 +199,7 @@ struct TrimPanel: View {
                 Text(Timecode.string(from: model.currentTime, fractionDigits: 2))
                     .font(.system(size: 28, weight: .medium, design: .rounded).monospacedDigit())
                 if !model.canPlay {
-                    Text("Afspelen kan niet voor dit formaat; inkorten werkt wel.").font(.caption).foregroundStyle(.secondary)
+                    Text("Playback isn't available for this format, but trimming works.").font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
@@ -207,29 +207,29 @@ struct TrimPanel: View {
 
     private var transport: some View {
         HStack(spacing: 10) {
-            TimeField(label: "Begin", seconds: model.start) { model.setStart($0) }
+            TimeField(label: "Start", seconds: model.start) { model.setStart($0) }
             Button { model.setStart(model.currentTime) } label: { Image(systemName: "arrow.right.to.line") }
-                .help("Begin op de afspeelpositie")
+                .help("Set start to the playhead")
             Spacer()
             Button { model.seek(to: model.start) } label: { Image(systemName: "backward.end.fill") }
-                .help("Naar het begin van de selectie")
+                .help("Go to the start of the selection")
             Button(action: model.togglePlayback) {
                 Image(systemName: model.isPlaying ? "pause.fill" : "play.fill").frame(width: 18)
             }
             .disabled(!model.canPlay)
-            .help("Selectie afspelen")
+            .help("Play selection")
             Text(Timecode.string(from: model.currentTime, fractionDigits: 2))
                 .font(.callout.monospacedDigit()).foregroundStyle(.secondary).frame(width: 64)
             Spacer()
             Button { model.setEnd(model.currentTime) } label: { Image(systemName: "arrow.left.to.line") }
-                .help("Eind op de afspeelpositie")
-            TimeField(label: "Eind", seconds: model.end) { model.setEnd($0) }
+                .help("Set end to the playhead")
+            TimeField(label: "End", seconds: model.end) { model.setEnd($0) }
         }
         .disabled(!model.isLoaded || model.duration <= 0)
     }
 }
 
-/// Invoerveld voor een tijd als m:ss.f; ongeldige invoer zet de oude waarde terug.
+/// Input field for a time as m:ss.f; invalid input restores the previous value.
 private struct TimeField: View {
     let label: String
     let seconds: Double
@@ -260,7 +260,7 @@ private struct TimeField: View {
     }
 }
 
-/// Tijdlijn met miniaturen (video) of golfvorm (audio), versleepbare begin- en eindgreep en een afspeelkop.
+/// Timeline with thumbnails (video) or a waveform (audio), draggable start and end handles and a playhead.
 private struct TrimTimeline: View {
     @ObservedObject var model: TrimModel
     @State private var dragging: Grip?
@@ -281,7 +281,7 @@ private struct TrimTimeline: View {
                 background(width: width, height: height)
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
 
-                // Buiten de selectie dimmen.
+                // Dim everything outside the selection.
                 Path { path in
                     path.addRect(CGRect(x: 0, y: 0, width: startX, height: height))
                     path.addRect(CGRect(x: endX, y: 0, width: width - endX, height: height))
@@ -307,7 +307,7 @@ private struct TrimTimeline: View {
             .gesture(DragGesture(minimumDistance: 0).onChanged { value in
                 let seconds = Double(min(max(value.location.x, 0), width) / width) * duration
                 if dragging == nil {
-                    // De dichtstbijzijnde greep pakken; elders klikken verplaatst de afspeelkop.
+                    // Grab the nearest handle; clicking elsewhere moves the playhead.
                     let tolerance = gripWidth * 1.5
                     if abs(value.startLocation.x - startX) < tolerance { dragging = .start }
                     else if abs(value.startLocation.x - endX) < tolerance { dragging = .end }
@@ -362,7 +362,7 @@ private struct TrimTimeline: View {
     }
 }
 
-/// AVPlayerView zonder eigen bediening; de tijdlijn eronder is de bediening.
+/// AVPlayerView without its own controls; the timeline below is the control.
 private struct PlayerView: NSViewRepresentable {
     let player: AVPlayer
 

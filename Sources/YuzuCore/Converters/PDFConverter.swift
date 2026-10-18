@@ -5,11 +5,11 @@ import PDFKit
 public enum PDFConverter {
     static func open(_ url: URL) throws -> PDFDocument {
         guard let document = PDFDocument(url: url) else { throw YuzuError.unreadable(url.lastPathComponent) }
-        if document.isLocked { throw YuzuError.unsupported("versleutelde PDF") }
+        if document.isLocked { throw YuzuError.unsupported("encrypted PDF") }
         return document
     }
 
-    /// Tekst van alle pagina's, met behoud van de opmaak die PDFKit herkent.
+    /// Text of all pages, keeping the formatting PDFKit recognizes.
     public static func attributedText(of url: URL) throws -> NSAttributedString {
         let document = try open(url)
         let result = NSMutableAttributedString()
@@ -21,19 +21,19 @@ public enum PDFConverter {
         return result
     }
 
-    /// Rendert pagina's als afbeelding op 300 DPI. Eén pagina geeft één bestand, meer pagina's een map.
+    /// Renders pages as images at 300 DPI. One page gives one file, several pages give a folder.
     public static func renderPages(_ url: URL, format: ConversionFormat, quality: Quality, dpi: CGFloat = 300) throws -> [URL] {
         guard let document = CGPDFDocument(url as CFURL) else { throw YuzuError.unreadable(url.lastPathComponent) }
-        if document.isEncrypted, !document.isUnlocked { throw YuzuError.unsupported("versleutelde PDF") }
+        if document.isEncrypted, !document.isUnlocked { throw YuzuError.unsupported("encrypted PDF") }
         let pageCount = document.numberOfPages
-        guard pageCount > 0 else { throw YuzuError.nothingToDo("Deze PDF heeft geen pagina's.") }
+        guard pageCount > 0 else { throw YuzuError.nothingToDo("This PDF has no pages.") }
 
         var outputs: [URL] = []
         let folder: URL? = pageCount > 1 ? try OutputNaming.folder(for: url, name: "\(OutputNaming.baseName(of: url)) \(format.displayName)") : nil
         for number in 1...pageCount {
             guard let page = document.page(at: number) else { continue }
             let image = try render(page, dpi: dpi)
-            let output = folder.map { $0.appendingPathComponent("Pagina \(number).\(format.fileExtension)") }
+            let output = folder.map { $0.appendingPathComponent("Page \(number).\(format.fileExtension)") }
                 ?? OutputNaming.output(for: url, fileExtension: format.fileExtension)
             try ImageConverter.write(image, properties: [:], format: format, quality: quality.imageQuality, to: output)
             outputs.append(output)
@@ -52,7 +52,7 @@ public enum PDFConverter {
               let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
                                       space: CGColorSpace(name: CGColorSpace.sRGB)!,
                                       bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else {
-            throw YuzuError.writeFailed("PDF-pagina")
+            throw YuzuError.writeFailed("PDF page")
         }
         context.setFillColor(CGColor(gray: 1, alpha: 1))
         context.fill(CGRect(x: 0, y: 0, width: width, height: height))
@@ -60,7 +60,7 @@ public enum PDFConverter {
         context.scaleBy(x: scale, y: scale)
         context.concatenate(page.getDrawingTransform(.cropBox, rect: CGRect(origin: .zero, size: size), rotate: 0, preserveAspectRatio: true))
         context.drawPDFPage(page)
-        guard let image = context.makeImage() else { throw YuzuError.writeFailed("PDF-pagina") }
+        guard let image = context.makeImage() else { throw YuzuError.writeFailed("PDF page") }
         return image
     }
 
@@ -96,12 +96,12 @@ public enum PDFConverter {
 
     public static func split(_ source: URL) throws -> URL {
         let document = try open(source)
-        let folder = try OutputNaming.folder(for: source, name: "\(OutputNaming.baseName(of: source)) pagina's")
+        let folder = try OutputNaming.folder(for: source, name: "\(OutputNaming.baseName(of: source)) pages")
         for index in 0..<document.pageCount {
             guard let page = document.page(at: index)?.copy() as? PDFPage else { continue }
             let single = PDFDocument()
             single.insert(page, at: 0)
-            let output = folder.appendingPathComponent("Pagina \(index + 1).pdf")
+            let output = folder.appendingPathComponent("Page \(index + 1).pdf")
             guard single.write(to: output) else { throw YuzuError.writeFailed(output.lastPathComponent) }
         }
         return folder

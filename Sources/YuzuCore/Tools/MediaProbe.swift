@@ -3,10 +3,10 @@ import Foundation
 
 public struct MediaInfo: Sendable, Equatable {
     public var duration: Double?
-    /// Weergavegrootte van de eerste videostream (met rotatie toegepast).
+    /// Display size of the first video stream (with rotation applied).
     public var videoSize: CGSize?
     public var hasAudio: Bool
-    /// Of AVFoundation het bestand kan afspelen (anders geen AVPlayer-preview, bijvoorbeeld bij WebM of MKV).
+    /// Whether AVFoundation can play the file (if not, there is no AVPlayer preview, for example for WebM or MKV).
     public var isPlayable: Bool
 
     public init(duration: Double?, videoSize: CGSize?, hasAudio: Bool, isPlayable: Bool) {
@@ -17,7 +17,7 @@ public struct MediaInfo: Sendable, Equatable {
     }
 }
 
-/// Leest duur en streams: eerst via AVFoundation, met ffprobe als terugval voor containers die AVFoundation niet kent.
+/// Reads duration and streams: first through AVFoundation, falling back to ffprobe for containers AVFoundation doesn't know.
 public enum MediaProbe {
     public static func info(of url: URL) async -> MediaInfo {
         let asset = AVURLAsset(url: url)
@@ -60,9 +60,9 @@ public enum MediaProbe {
     }
 }
 
-/// Golfvorm voor de tijdlijn van het inkort-paneel.
+/// Waveform for the timeline of the trim panel.
 public enum Waveform {
-    /// `count` piekwaarden (0...1) over de hele duur; leeg als AVFoundation het bestand niet kan lezen.
+    /// `count` peak values (0...1) over the whole duration; empty when AVFoundation can't read the file.
     public static func peaks(of url: URL, count: Int) async throws -> [Float] {
         guard count > 0 else { return [] }
         let asset = AVURLAsset(url: url)
@@ -82,7 +82,7 @@ public enum Waveform {
         reader.add(output)
         guard reader.startReading() else { throw reader.error ?? YuzuError.unreadable(url.lastPathComponent) }
 
-        // Per vak de piek bijhouden tijdens het lezen, zodat lange bestanden weinig geheugen kosten.
+        // Track the peak per bucket while reading, so long files use little memory.
         let perBucket = max(1, Int(duration.isFinite ? duration * sampleRate : 0) / count)
         var peaks: [Int16] = []
         var current: Int16 = 0

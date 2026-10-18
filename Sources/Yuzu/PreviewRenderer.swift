@@ -2,8 +2,8 @@ import AppKit
 import SwiftUI
 import YuzuCore
 
-/// Ontwikkelhulp: `Yuzu --render-previews <map>` schrijft PNG's van het wiel en de instellingen,
-/// zodat de vormgeving zonder schermopname-rechten te controleren is.
+/// Development aid: `Yuzu --render-previews <folder>` writes PNGs of the wheel, the settings and the
+/// option panels, so the design can be checked without screen recording permissions.
 @MainActor
 enum PreviewRenderer {
     static func run(arguments: [String]) -> Bool {
@@ -12,10 +12,10 @@ enum PreviewRenderer {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
         let samples: [(String, WheelKind, [URL], Int?)] = [
-            ("wheel-convert-image", .convert, [URL(fileURLWithPath: "/tmp/foto.heic")], 2),
+            ("wheel-convert-image", .convert, [URL(fileURLWithPath: "/tmp/photo.heic")], 2),
             ("wheel-convert-video", .convert, [URL(fileURLWithPath: "/tmp/clip.mov")], nil),
             ("wheel-tools-pdf", .tools, [URL(fileURLWithPath: "/tmp/a.pdf"), URL(fileURLWithPath: "/tmp/b.pdf")], 1),
-            ("wheel-actions", .actions, [URL(fileURLWithPath: "/tmp/map")], 0),
+            ("wheel-actions", .actions, [URL(fileURLWithPath: "/tmp/folder")], 0),
         ]
         for appearanceName in [NSAppearance.Name.aqua, .darkAqua] {
             let suffix = appearanceName == .aqua ? "light" : "dark"
@@ -24,7 +24,7 @@ enum PreviewRenderer {
                 view.appearance = NSAppearance(named: appearanceName)
                 view.items = WheelItem.items(for: kind, urls: urls)
                 view.title = kind.displayName
-                view.subtitle = urls.count == 1 ? "1 bestand" : "\(urls.count) bestanden"
+                view.subtitle = urls.count == 1 ? "1 file" : "\(urls.count) files"
                 view.playsSounds = false
                 view.highlightedIndex = highlight
                 write(view, background: appearanceName == .aqua ? .white : NSColor(white: 0.12, alpha: 1),
@@ -39,7 +39,7 @@ enum PreviewRenderer {
                 let host = NSHostingView(rootView: view)
                 host.appearance = NSAppearance(named: appearanceName)
                 host.frame = CGRect(origin: .zero, size: ToolOptionsView.preferredSize(for: tool))
-                // SwiftUI heeft één runloop-ronde nodig om de StateObjects en layout op te bouwen.
+                // SwiftUI needs one run loop pass to set up the StateObjects and layout.
                 RunLoop.main.run(until: Date().addingTimeInterval(0.05))
                 write(host, background: .windowBackgroundColor, to: directory.appendingPathComponent("panel-\(name)-\(suffix).png"))
             }
@@ -47,10 +47,10 @@ enum PreviewRenderer {
         return true
     }
 
-    /// Optiepanelen met ingebakken voorbeeldinhoud, zodat ze zonder echte bestanden te tonen zijn.
+    /// Option panels with built-in sample content, so they render without real files.
     private static func toolPanels() -> [(String, FileTool, AnyView)] {
         let photo = sampleImage(width: 1600, height: 1000)
-        let crop = CropModel(previewImage: photo, urls: [URL(fileURLWithPath: "/tmp/foto.jpg")])
+        let crop = CropModel(previewImage: photo, urls: [URL(fileURLWithPath: "/tmp/photo.jpg")])
         crop.ratio = .ratio(4, 3)
         let still = sampleImage(width: 640, height: 360)
         let peaks = (0..<240).map { index -> Float in
@@ -59,7 +59,7 @@ enum PreviewRenderer {
         }
         let video = TrimModel(previewDuration: 83.4, isVideo: true, still: still, peaks: [])
         let audio = TrimModel(previewDuration: 214.0, isVideo: false, still: nil, peaks: peaks)
-        let compress = CompressModel(urls: [URL(fileURLWithPath: "/tmp/vakantie.mov")], sizes: [482_000_000],
+        let compress = CompressModel(urls: [URL(fileURLWithPath: "/tmp/holiday.mov")], sizes: [482_000_000],
                                      videoInfo: MediaInfo(duration: 245, videoSize: CGSize(width: 3840, height: 2160), hasAudio: true, isPlayable: true))
         compress.mode = .size
         compress.sizeValue = 50
@@ -73,7 +73,7 @@ enum PreviewRenderer {
         ]
     }
 
-    /// Een "landschap" met verloop, zon en heuvels als stand-in voor een foto of videoframe.
+    /// A "landscape" with a gradient, sun and hills standing in for a photo or video frame.
     private static func sampleImage(width: Int, height: Int) -> CGImage {
         let space = CGColorSpace(name: CGColorSpace.sRGB)!
         let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0, space: space,
@@ -103,7 +103,7 @@ enum PreviewRenderer {
         let container = NSView(frame: view.bounds)
         container.wantsLayer = true
         container.appearance = view.appearance
-        // Systeemkleuren pas omzetten onder het uiterlijk van de view, anders wint de donkere modus van het systeem.
+        // Resolve system colors under the view's appearance; otherwise the system's dark mode wins.
         var color = background.cgColor
         (view.appearance ?? NSAppearance.currentDrawing()).performAsCurrentDrawingAppearance { color = background.cgColor }
         container.layer?.backgroundColor = color

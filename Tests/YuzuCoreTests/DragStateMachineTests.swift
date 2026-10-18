@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import YuzuCore
 
-/// Hulpje dat een reeks metingen afspeelt met een vaste tijdstap.
+/// Helper that plays back a series of samples with a fixed time step.
 private struct Driver {
     var machine = DragStateMachine()
     var time: TimeInterval = 0
@@ -15,7 +15,7 @@ private struct Driver {
                                              escapeDown: escape, dragChangeCount: changeCount))
     }
 
-    /// Muis omlaag en een drag die het drag-pasteboard verandert.
+    /// Mouse down and a drag that changes the drag pasteboard.
     mutating func startDrag(modifiers: ModifierSet = []) {
         step(button: false)
         step(button: true, modifiers: modifiers)
@@ -70,7 +70,7 @@ private struct Driver {
         driver.step(button: true, modifiers: .shift)
         driver.step(button: true)
         #expect(driver.events == [.dragStarted])
-        // Daarna werkt een nieuwe tik wel.
+        // After that, a new tap does work.
         driver.tap(.shift)
         #expect(driver.events.last == .wheelRequested(.convert))
     }
@@ -78,15 +78,15 @@ private struct Driver {
     @Test func holdingShiftOpensWheelOnceAfterDelay() {
         var driver = Driver()
         driver.startDrag()
-        for _ in 0..<10 { driver.step(button: true, modifiers: .shift) } // ~0,16 s
+        for _ in 0..<10 { driver.step(button: true, modifiers: .shift) } // ~0.16 s
         #expect(driver.events == [.dragStarted])
-        for _ in 0..<60 { driver.step(button: true, modifiers: .shift) } // tot ~1,1 s
+        for _ in 0..<60 { driver.step(button: true, modifiers: .shift) } // until ~1.1 s
         driver.step(button: true)
         #expect(driver.events == [.dragStarted, .wheelRequested(.convert)])
     }
 
     @Test func holdingShiftUntilDropStillOpensWheel() {
-        // Zoals in de echte log: Shift ingedrukt en vastgehouden tot het loslaten van de muis.
+        // As in the real log: Shift pressed and held until the mouse is released.
         var driver = Driver()
         driver.startDrag()
         for _ in 0..<40 { driver.step(button: true, modifiers: .shift) }

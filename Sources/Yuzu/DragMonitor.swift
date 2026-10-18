@@ -3,10 +3,10 @@ import CoreGraphics
 import OSLog
 import YuzuCore
 
-/// Pollt muisknop, modifiers, Escape en het drag-pasteboard en voert die aan de `DragStateMachine`.
+/// Polls the mouse button, modifiers, Escape and the drag pasteboard and feeds them to the `DragStateMachine`.
 ///
-/// Geen event tap en geen global key monitor: daarvoor zijn geen Accessibility- of
-/// Input Monitoring-rechten nodig. In rust wordt traag gepold, tijdens een muisactie snel.
+/// No event tap and no global key monitor, so no Accessibility or Input Monitoring
+/// permissions are needed. It polls slowly when idle and quickly during a mouse action.
 @MainActor
 final class DragMonitor {
     var onEvent: ((DragEvent) -> Void)?
@@ -46,7 +46,7 @@ final class DragMonitor {
             MainActor.assumeIsolated { self?.tick() }
         }
         timer.tolerance = interval * 0.2
-        // `.common`, zodat er ook tijdens tracking-loops gepold wordt.
+        // `.common`, so polling continues during tracking loops too.
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
     }
@@ -68,7 +68,7 @@ final class DragMonitor {
         if desired != currentInterval { schedule(desired) }
     }
 
-    /// Bestands-URL's die nu gesleept worden.
+    /// File URLs that are being dragged right now.
     func draggedFileURLs() -> [URL] {
         let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
         return dragPasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL] ?? []

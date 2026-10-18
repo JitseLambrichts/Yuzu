@@ -2,11 +2,11 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
-/// Grove indeling van een bronbestand; bepaalt welke converters en tools in aanmerking komen.
+/// Rough classification of a source file; decides which converters and tools apply.
 public enum FileCategory: String, CaseIterable, Sendable {
     case image, audio, video, pdf, document, spreadsheet, subtitle, archive, folder, other
 
-    /// Bepaalt de categorie op basis van extensie (en map-status voor mappen).
+    /// Determines the category from the extension (and the directory flag for folders).
     public static func of(_ url: URL) -> FileCategory {
         let ext = SourceExtension.normalized(url)
         if let category = SourceExtension.table[ext] { return category }
@@ -18,21 +18,21 @@ public enum FileCategory: String, CaseIterable, Sendable {
     }
 }
 
-/// Doelformaten die Yuzu kan schrijven.
+/// Target formats Yuzu can write.
 public enum ConversionFormat: String, CaseIterable, Sendable, Identifiable, Codable {
-    // Afbeeldingen
+    // Images
     case jpg, png, webp, heic, tiff, avif, bmp, gif
     // Audio
     case mp3, m4a, wav, flac, ogg, opus, aiff, wma
     // Video
     case mp4, mov, mkv, webm, avi, wmv
-    // Documenten
+    // Documents
     case pdf, docx, rtf, odt, html, txt, md
     // Spreadsheets
     case xlsx, csv, tsv
-    // Ondertitels
+    // Subtitles
     case srt, vtt
-    // Archieven
+    // Archives
     case zip, tar, tgz
 
     public var id: String { rawValue }
@@ -52,7 +52,7 @@ public enum ConversionFormat: String, CaseIterable, Sendable, Identifiable, Coda
         }
     }
 
-    /// Het formaat dat bij een bronbestand hoort, zodat we niet naar hetzelfde formaat converteren.
+    /// The format that belongs to a source file, so we don't convert to the same format.
     public static func matching(_ url: URL) -> ConversionFormat? {
         switch SourceExtension.normalized(url) {
         case "jpeg", "jpe": return .jpg
@@ -105,7 +105,7 @@ enum SourceExtension {
     }()
 }
 
-/// Bepaalt welke formaten ImageIO op dit systeem kan schrijven (AVIF/WebP verschillen per macOS-versie).
+/// Determines which formats ImageIO can write on this system (AVIF/WebP differ per macOS version).
 public enum ImageCapabilities {
     public static let writableTypeIdentifiers: Set<String> = {
         let ids = CGImageDestinationCopyTypeIdentifiers() as? [String] ?? []

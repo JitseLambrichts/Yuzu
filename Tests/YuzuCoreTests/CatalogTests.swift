@@ -56,7 +56,7 @@ import Testing
         #expect(OutputNaming.output(for: source, fileExtension: "jpg").lastPathComponent == "photo.jpg")
         FileManager.default.createFile(atPath: dir.appendingPathComponent("photo.jpg").path, contents: Data())
         #expect(OutputNaming.output(for: source, fileExtension: "jpg").lastPathComponent == "photo 2.jpg")
-        #expect(OutputNaming.output(for: source, fileExtension: "jpg", suffix: "gecomprimeerd").lastPathComponent == "photo gecomprimeerd.jpg")
+        #expect(OutputNaming.output(for: source, fileExtension: "jpg", suffix: "compressed").lastPathComponent == "photo compressed.jpg")
     }
 
     @Test func tarGzBaseName() {

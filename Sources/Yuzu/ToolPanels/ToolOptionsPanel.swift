@@ -2,8 +2,8 @@ import AppKit
 import SwiftUI
 import YuzuCore
 
-/// Opent het optiepaneel van een tool na een drop op het ⌘-wiel. 'Toepassen' geeft de opties terug; het werk zelf
-/// loopt daarna via JobCenter.
+/// Opens a tool's options panel after a drop on the ⌘ wheel. 'Apply' hands back the options; the work itself
+/// then runs through JobCenter.
 @MainActor
 final class ToolOptionsPanelController: NSObject, NSWindowDelegate {
     private var panel: NSPanel?
@@ -31,7 +31,7 @@ final class ToolOptionsPanelController: NSObject, NSWindowDelegate {
         panel.contentView = NSHostingView(rootView: view)
         panel.center()
         self.panel = panel
-        // Yuzu is een menubalk-app; zonder activeren krijgen de tekstvelden geen toetsenbord.
+        // Yuzu is a menu bar app; without activating, the text fields don't get keyboard input.
         NSApp.activate()
         panel.makeKeyAndOrderFront(nil)
     }
@@ -41,7 +41,7 @@ final class ToolOptionsPanelController: NSObject, NSWindowDelegate {
         self.panel = nil
         panel.delegate = nil
         panel.close()
-        // De SwiftUI-views stoppen hun AVPlayer in onDisappear; de hostingview loslaten zorgt daarvoor.
+        // The SwiftUI views stop their AVPlayer in onDisappear; releasing the hosting view triggers that.
         panel.contentView = nil
     }
 
@@ -52,7 +52,7 @@ final class ToolOptionsPanelController: NSObject, NSWindowDelegate {
     }
 }
 
-/// Kiest het juiste paneel per tool.
+/// Picks the right panel for each tool.
 struct ToolOptionsView: View {
     let tool: FileTool
     let urls: [URL]
@@ -60,7 +60,7 @@ struct ToolOptionsView: View {
     let onCancel: () -> Void
 
     static func title(for tool: FileTool, urls: [URL]) -> String {
-        let subject = urls.count == 1 ? urls[0].lastPathComponent : "\(urls.count) bestanden"
+        let subject = urls.count == 1 ? urls[0].lastPathComponent : "\(urls.count) files"
         return "\(tool.displayName) — \(subject)"
     }
 
@@ -90,12 +90,12 @@ struct ToolOptionsView: View {
         case .compress:
             CompressPanel(model: CompressModel(urls: urls), onApply: onApply, onCancel: onCancel)
         default:
-            Text("\(tool.displayName) heeft geen opties.").frame(maxWidth: .infinity, maxHeight: .infinity)
+            Text("\(tool.displayName) has no options.").frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
 
-/// Onderbalk die alle panelen delen: korte samenvatting links, Annuleren en Toepassen rechts.
+/// Bottom bar shared by all panels: a short summary on the left, Cancel and Apply on the right.
 struct OptionsFooter: View {
     var summary: String?
     var canApply = true
@@ -108,8 +108,8 @@ struct OptionsFooter: View {
                 Text(summary).font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
             }
             Spacer(minLength: 12)
-            Button("Annuleren", action: onCancel).keyboardShortcut(.cancelAction)
-            Button("Toepassen", action: onApply).keyboardShortcut(.defaultAction).disabled(!canApply)
+            Button("Cancel", action: onCancel).keyboardShortcut(.cancelAction)
+            Button("Apply", action: onApply).keyboardShortcut(.defaultAction).disabled(!canApply)
         }
         .controlSize(.large)
         .padding(.horizontal, 16)
@@ -119,7 +119,7 @@ struct OptionsFooter: View {
     }
 }
 
-/// Melding in een paneel, bijvoorbeeld als een bestand niet te lezen is.
+/// A notice inside a panel, for example when a file can't be read.
 struct PanelNotice: View {
     let text: String
     var systemImage = "exclamationmark.triangle"

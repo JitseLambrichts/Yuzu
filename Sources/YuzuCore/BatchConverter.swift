@@ -1,6 +1,6 @@
 import Foundation
 
-/// Converteert een selectie met beperkte parallelliteit en één gecombineerde voortgang.
+/// Converts a selection with limited parallelism and a single combined progress value.
 public enum BatchConverter {
     public static func convert(_ urls: [URL], to format: ConversionFormat, settings: ConversionSettings,
                                maxConcurrent: Int = 3,
@@ -45,7 +45,7 @@ public enum BatchConverter {
         }
         if !failures.isEmpty {
             let names = failures.map { $0.0.lastPathComponent }.joined(separator: ", ")
-            throw YuzuError.nothingToDo("\(outputs.count) gelukt, mislukt: \(names) (\(failures[0].1.localizedDescription))")
+            throw YuzuError.nothingToDo("\(outputs.count) succeeded, failed: \(names) (\(failures[0].1.localizedDescription))")
         }
         return ToolResult(outputs: outputs)
     }

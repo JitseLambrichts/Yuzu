@@ -8,10 +8,10 @@ final class CropModel: ObservableObject {
 
     let urls: [URL]
     @Published private(set) var image: CGImage?
-    /// Echte pixelgrootte van de eerste afbeelding; `image` is mogelijk een verkleinde versie.
+    /// Real pixel size of the first image; `image` may be a scaled-down version.
     @Published private(set) var imageSize: CGSize = .zero
     @Published private(set) var loadError: String?
-    /// Kader in pixels van de eerste afbeelding, oorsprong linksboven.
+    /// Crop area in pixels of the first image, origin at the top left.
     @Published var rect: CGRect = .zero
     @Published var ratio: AspectRatio = .free {
         didSet { if let value = ratioValue { rect = CropGeometry.clamp(CropGeometry.fit(rect, ratio: value, in: imageSize), to: imageSize) } }
@@ -32,7 +32,7 @@ final class CropModel: ObservableObject {
         }
     }
 
-    /// Voor de previews: een vaste afbeelding, direct geladen.
+    /// For the previews: a fixed image, loaded right away.
     init(previewImage: CGImage, urls: [URL]) {
         self.urls = urls
         setImage(previewImage, size: CGSize(width: previewImage.width, height: previewImage.height))
@@ -57,7 +57,7 @@ final class CropModel: ObservableObject {
         }
     }
 
-    /// Exacte pixels invoeren; met een vaste verhouding volgt de andere zijde.
+    /// Enter exact pixels; with a fixed ratio the other side follows.
     func set(_ field: Field, to value: Int) {
         var next = rect
         let value = CGFloat(max(value, field == .x || field == .y ? 0 : 1))
@@ -72,7 +72,7 @@ final class CropModel: ObservableObject {
             if let ratioValue { next.size.width = value * ratioValue }
         }
         if let ratioValue {
-            // Past de verhouding niet meer, dan krimpt het kader in beide richtingen.
+            // If the ratio no longer fits, the area shrinks in both directions.
             let shrink = min(1, imageSize.width / next.width, imageSize.height / next.height)
             next.size = CGSize(width: next.width * shrink, height: next.width * shrink / ratioValue)
         }
@@ -124,7 +124,7 @@ struct CropPanel: View {
 
     private var controls: some View {
         HStack(alignment: .firstTextBaseline, spacing: 16) {
-            Picker("Verhouding", selection: $model.ratio) {
+            Picker("Aspect Ratio", selection: $model.ratio) {
                 ForEach(AspectRatio.presets) { ratio in Text(ratio.displayName).tag(ratio) }
             }
             .frame(width: 190)
@@ -132,13 +132,13 @@ struct CropPanel: View {
             HStack(spacing: 8) {
                 pixelField("X", .x)
                 pixelField("Y", .y)
-                pixelField("B", .width)
+                pixelField("W", .width)
                 pixelField("H", .height)
                 Text("px").foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 0)
-            Button("Herstel", action: model.reset).disabled(model.image == nil)
+            Button("Reset", action: model.reset).disabled(model.image == nil)
         }
     }
 
@@ -156,13 +156,13 @@ struct CropPanel: View {
     private var summary: String {
         let size = "\(model.value(.width)) × \(model.value(.height)) px"
         if model.urls.count > 1 {
-            return "\(size) · toegepast op \(model.urls.count) afbeeldingen, naar verhouding geschaald"
+            return "\(size) · applied to \(model.urls.count) images, scaled proportionally"
         }
         return size
     }
 }
 
-/// De afbeelding met een versleepbaar kader, gedimde randen, derdenraster en vier hoekgrepen.
+/// The image with a draggable crop area, dimmed edges, a rule-of-thirds grid and four corner handles.
 private struct CropCanvas: View {
     @ObservedObject var model: CropModel
     let image: CGImage
@@ -184,7 +184,7 @@ private struct CropCanvas: View {
                     .frame(width: shown.width, height: shown.height)
                     .offset(x: origin.x, y: origin.y)
 
-                // Buiten het kader dimmen.
+                // Dim everything outside the crop area.
                 Path { path in
                     path.addRect(CGRect(origin: origin, size: shown))
                     path.addRect(frame)

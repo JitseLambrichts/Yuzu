@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-/// Eenvoudige Markdown ↔ NSAttributedString-vertaling: koppen, lijsten, citaten, codeblokken en inline opmaak.
+/// Simple Markdown ↔ NSAttributedString translation: headings, lists, quotes, code blocks and inline styling.
 public enum Markdown {
     static let bodySize: CGFloat = 12
     static let headingSizes: [CGFloat] = [24, 20, 17, 15, 13, 13]
@@ -96,7 +96,7 @@ public enum Markdown {
         return nil
     }
 
-    /// Inline opmaak (vet, cursief, code, links) via Foundation's Markdown-parser.
+    /// Inline styling (bold, italic, code, links) through Foundation's Markdown parser.
     static func inline(_ text: String, baseFont: NSFont) -> NSAttributedString {
         let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         guard let parsed = try? AttributedString(markdown: text, options: options) else {
@@ -120,7 +120,7 @@ public enum Markdown {
         return result
     }
 
-    // MARK: - Terug naar Markdown
+    // MARK: - Back to Markdown
 
     public static func markdown(from attributed: NSAttributedString) -> String {
         let string = attributed.string as NSString
@@ -203,7 +203,7 @@ public enum Markdown {
         return output
     }
 
-    // MARK: - Stijlen
+    // MARK: - Styles
 
     static func bold(_ font: NSFont) -> NSFont { NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask) }
     static func italic(_ font: NSFont) -> NSFont { NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask) }
