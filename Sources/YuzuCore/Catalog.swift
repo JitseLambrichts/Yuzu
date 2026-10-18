@@ -33,13 +33,15 @@ public struct ConversionSettings: Sendable, Equatable {
 
 /// Tools on the ⌘ wheel. Most run without a window; tools with `hasOptionsPanel` ask for settings first.
 public enum FileTool: String, CaseIterable, Sendable, Codable {
-    case compress, cropImage, trimVideo, trimAudio, removeMetadata, createPDF, mergePDF, splitPDF, muteVideo, normalizeAudio,
+    case compress, cropImage, frameImage, annotateImage, trimVideo, trimAudio, removeMetadata, createPDF, mergePDF, splitPDF, muteVideo, normalizeAudio,
          extractArchive, readQRCode
 
     public var displayName: String {
         switch self {
         case .compress: return "Compress"
         case .cropImage: return "Crop"
+        case .frameImage: return "Add Background"
+        case .annotateImage: return "Annotate"
         case .trimVideo, .trimAudio: return "Trim"
         case .removeMetadata: return "Remove Metadata"
         case .createPDF: return "Create PDF"
@@ -56,6 +58,8 @@ public enum FileTool: String, CaseIterable, Sendable, Codable {
         switch self {
         case .compress: return "arrow.down.right.and.arrow.up.left"
         case .cropImage: return "crop"
+        case .frameImage: return "photo.artframe"
+        case .annotateImage: return "pencil.tip.crop.circle"
         case .trimVideo: return "timeline.selection"
         case .trimAudio: return "waveform.path"
         case .removeMetadata: return "eye.slash"
@@ -72,7 +76,7 @@ public enum FileTool: String, CaseIterable, Sendable, Codable {
     /// Whether the tool opens an options panel after the drop (and therefore expects `FileToolOptions`).
     public var hasOptionsPanel: Bool {
         switch self {
-        case .compress, .cropImage, .trimVideo, .trimAudio: return true
+        case .compress, .cropImage, .frameImage, .annotateImage, .trimVideo, .trimAudio: return true
         default: return false
         }
     }
@@ -83,7 +87,8 @@ public enum FileTool: String, CaseIterable, Sendable, Codable {
         func all(_ allowed: Set<FileCategory>) -> Bool { categories.allSatisfy(allowed.contains) }
         switch self {
         case .compress: return all([.image, .video, .pdf])
-        case .cropImage: return all([.image])
+        case .cropImage, .frameImage: return all([.image])
+        case .annotateImage: return categories.count == 1 && all([.image])
         case .trimVideo: return categories.count == 1 && all([.video])
         case .trimAudio: return categories.count == 1 && all([.audio])
         case .removeMetadata: return all([.image, .audio, .video, .pdf])

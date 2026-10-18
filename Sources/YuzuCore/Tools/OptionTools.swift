@@ -9,22 +9,49 @@ extension FileToolEngine {
         let rect = options.pixelRect(for: CGSize(width: image.width, height: image.height))
         guard let cropped = image.cropping(to: rect) else { throw YuzuError.writeFailed(source.lastPathComponent) }
 
+        return try writeEdited(cropped, from: source, properties: properties, suffix: "cropped", settings: settings)
+    }
+
+    static func frameImage(_ source: URL, options: FrameOptions, settings: ConversionSettings) throws -> URL {
+        let (image, properties) = try ImageConverter.loadOriented(source)
+        var backgroundImage: CGImage?
+        if case .image(let url) = options.background {
+            backgroundImage = try ImageConverter.loadOriented(url).image
+        }
+        let framed = try FrameRenderer.render(image, options: options, backgroundImage: backgroundImage)
+        return try writeEdited(framed, from: source, properties: properties, suffix: "with background", settings: settings)
+    }
+
+    static func annotateImage(_ source: URL, options: AnnotateOptions, settings: ConversionSettings) throws -> URL {
+        let (image, properties) = try ImageConverter.loadOriented(source)
+        var annotations = options.annotations
+        let size = CGSize(width: image.width, height: image.height)
+        if options.referenceSize.width > 0, abs(options.referenceSize.width - size.width) > 0.5 {
+            annotations = annotations.map { $0.scaled(by: size.width / options.referenceSize.width) }
+        }
+        let annotated = try AnnotationRenderer.render(image, annotations: annotations)
+        return try writeEdited(annotated, from: source, properties: properties, suffix: "annotated", settings: settings)
+    }
+
+    /// Writes an edited image next to the original, in the original format when this Mac can write it (PNG otherwise).
+    static func writeEdited(_ image: CGImage, from source: URL, properties: [CFString: Any], suffix: String,
+                            settings: ConversionSettings) throws -> URL {
         var format = ConversionFormat.matching(source) ?? .png
-        if ImageCapabilities.utType(for: format) == nil || !ImageCapabilities.canWriteNatively(format) {
+        if format == .gif || ImageCapabilities.utType(for: format) == nil || !ImageCapabilities.canWriteNatively(format) {
             format = .png
         }
         var kept: [CFString: Any] = [:]
         if settings.preserveMetadata {
             kept = properties
-            // The old dimensions are no longer correct after cropping.
+            // The old dimensions are no longer correct after editing.
             if var exif = kept[kCGImagePropertyExifDictionary] as? [CFString: Any] {
                 exif[kCGImagePropertyExifPixelXDimension] = nil
                 exif[kCGImagePropertyExifPixelYDimension] = nil
                 kept[kCGImagePropertyExifDictionary] = exif
             }
         }
-        let output = OutputNaming.output(for: source, fileExtension: format.fileExtension, suffix: "cropped")
-        try ImageConverter.write(cropped, properties: kept, format: format, quality: max(settings.quality.imageQuality, 0.9), to: output)
+        let output = OutputNaming.output(for: source, fileExtension: format.fileExtension, suffix: suffix)
+        try ImageConverter.write(image, properties: kept, format: format, quality: max(settings.quality.imageQuality, 0.9), to: output)
         return output
     }
 

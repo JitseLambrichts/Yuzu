@@ -17,7 +17,7 @@ import Testing
     }
 
     @Test func optionPanelTools() {
-        #expect(FileTool.allCases.filter(\.hasOptionsPanel) == [.compress, .cropImage, .trimVideo, .trimAudio])
+        #expect(FileTool.allCases.filter(\.hasOptionsPanel) == [.compress, .cropImage, .frameImage, .annotateImage, .trimVideo, .trimAudio])
     }
 
     @Test func toolsWithPanelRefuseWithoutOptions() async throws {

@@ -67,6 +67,8 @@ struct ToolOptionsView: View {
     static func preferredSize(for tool: FileTool) -> CGSize {
         switch tool {
         case .cropImage: return CGSize(width: 720, height: 600)
+        case .frameImage: return CGSize(width: 680, height: 720)
+        case .annotateImage: return CGSize(width: 820, height: 640)
         case .trimVideo: return CGSize(width: 720, height: 620)
         case .trimAudio: return CGSize(width: 720, height: 400)
         default: return CGSize(width: 460, height: 330)
@@ -76,6 +78,8 @@ struct ToolOptionsView: View {
     static func minimumSize(for tool: FileTool) -> CGSize {
         switch tool {
         case .cropImage, .trimVideo: return CGSize(width: 560, height: 460)
+        case .frameImage: return CGSize(width: 600, height: 640)
+        case .annotateImage: return CGSize(width: 680, height: 500)
         case .trimAudio: return CGSize(width: 560, height: 360)
         default: return CGSize(width: 420, height: 300)
         }
@@ -85,6 +89,10 @@ struct ToolOptionsView: View {
         switch tool {
         case .cropImage:
             CropPanel(model: CropModel(urls: urls), onApply: onApply, onCancel: onCancel)
+        case .frameImage:
+            BackgroundPanel(model: BackgroundModel(urls: urls), onApply: onApply, onCancel: onCancel)
+        case .annotateImage:
+            AnnotatePanel(model: AnnotateModel(url: urls[0]), onApply: onApply, onCancel: onCancel)
         case .trimVideo, .trimAudio:
             TrimPanel(model: TrimModel(url: urls[0], isVideo: tool == .trimVideo), onApply: onApply, onCancel: onCancel)
         case .compress:
@@ -99,17 +107,24 @@ struct ToolOptionsView: View {
 struct OptionsFooter: View {
     var summary: String?
     var canApply = true
+    var applyTitle = "Apply"
+    /// Optional button on the far left, for example "Reset".
+    var secondaryTitle: String?
+    var onSecondary: () -> Void = {}
     let onCancel: () -> Void
     let onApply: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
+            if let secondaryTitle {
+                Button(secondaryTitle, action: onSecondary)
+            }
             if let summary {
                 Text(summary).font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
             }
             Spacer(minLength: 12)
             Button("Cancel", action: onCancel).keyboardShortcut(.cancelAction)
-            Button("Apply", action: onApply).keyboardShortcut(.defaultAction).disabled(!canApply)
+            Button(applyTitle, action: onApply).keyboardShortcut(.defaultAction).disabled(!canApply)
         }
         .controlSize(.large)
         .padding(.horizontal, 16)

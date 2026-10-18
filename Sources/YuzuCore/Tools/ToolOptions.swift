@@ -6,6 +6,8 @@ public enum FileToolOptions: Sendable, Equatable {
     case crop(CropOptions)
     case trim(TrimOptions)
     case compress(CompressionOptions)
+    case frame(FrameOptions)
+    case annotate(AnnotateOptions)
 }
 
 // MARK: - Crop

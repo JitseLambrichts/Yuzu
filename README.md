@@ -6,7 +6,7 @@ Drag a file, tap a key while dragging and drop it on the wheel.
 | Key (default) | Wheel | Contents |
 |---|---|---|
 | ⇧ Shift | Convert | target formats that fit the selection |
-| ⌘ Command | Tools | compress (automatic, percentage or target size), crop, trim, remove metadata, create/merge/split PDF, mute, normalize, extract, read QR |
+| ⌘ Command | Tools | compress (automatic, percentage or target size), crop, add background, annotate, trim, remove metadata, create/merge/split PDF, mute, normalize, extract, read QR |
 | ⌃ Control | Actions | AirDrop, Float, copy, move, copy path, Terminal |
 
 The output is saved next to the original; nothing is ever overwritten.
@@ -37,8 +37,9 @@ scripts/build-app.sh            # builds build/Yuzu.app
 scripts/build-app.sh --install  # and copies it to /Applications
 ```
 
-Development aid: `.build/debug/Yuzu --render-previews /tmp/yuzu` writes PNGs of the wheel,
-the settings and the option panels (light and dark).
+Development aids: `.build/debug/Yuzu --render-previews /tmp/yuzu` writes PNGs of the wheel,
+the settings and the option panels (light and dark). Liquid Glass only renders on screen, so
+`.build/debug/Yuzu --demo-wheel 6` shows the real wheel around the cursor for six seconds.
 
 To follow what drag detection sees:
 
@@ -54,6 +55,6 @@ log stream --predicate 'subsystem == "app.yuzu.Yuzu"' --level info
 
 ## Not built yet
 
-See phases 4 and 6 in [PLAN.md](PLAN.md): editors with their own window (annotate, photo editing,
+See phases 4 and 6 in [PLAN.md](PLAN.md): editors with their own window (photo editing,
 collage, redaction, splitting/joining video), PowerPoint, Pages, EPUB,
 ODS, onboarding with a practice wheel and sandbox/App Store distribution.

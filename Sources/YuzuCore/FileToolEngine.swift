@@ -73,6 +73,14 @@ public enum FileToolEngine {
         case (.cropImage, .image):
             guard case .crop(let crop) = options else { throw YuzuError.nothingToDo("Choose a crop area first.") }
             return [try cropImage(source, options: crop, settings: settings)]
+        case (.frameImage, .image):
+            guard case .frame(let frame) = options else { throw YuzuError.nothingToDo("Choose a background first.") }
+            return [try self.frameImage(source, options: frame, settings: settings)]
+        case (.annotateImage, .image):
+            guard case .annotate(let annotate) = options, !annotate.annotations.isEmpty else {
+                throw YuzuError.nothingToDo("Draw something on the image first.")
+            }
+            return [try self.annotateImage(source, options: annotate, settings: settings)]
         case (.trimVideo, .video), (.trimAudio, .audio):
             guard case .trim(let trim) = options else { throw YuzuError.nothingToDo("Choose a start and an end first.") }
             return [try await self.trim(source, options: trim, isVideo: category == .video, progress: progress)]
