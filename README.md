@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="docs/images/logo.png" alt="" width="34"> Yuzu
+# <img width="34" alt="Logo" src="https://github.com/user-attachments/assets/f5506968-25a3-42cb-946d-1c678c644b23" /> Yuzu
 
 **Convert, compress and share files without opening an app.**
 Drag a file, tap a key, drop it on the wheel. Everything happens offline on your Mac.
@@ -11,8 +11,7 @@ Drag a file, tap a key, drop it on the wheel. Everything happens offline on your
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/wheel-convert-image-dark.png">
-  <img src="docs/images/wheel-convert-image-light.png" alt="The Yuzu convert wheel offering PDF, JPG, PNG, WebP, TIFF, AVIF and BMP for an image" width="480">
+  <img width="640" alt="Preview of the dial" src="https://github.com/user-attachments/assets/c07aceac-1e71-4c86-9d88-7c24166a7a67" />
 </picture>
 
 </div>
@@ -34,15 +33,13 @@ the rest.
   <tr>
     <td align="center">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/images/wheel-tools-image-dark.png">
-        <img src="docs/images/wheel-tools-image-light.png" alt="The Tools wheel for an image" width="360">
+        <img width="360" alt="Preview of tools for an image" src="https://github.com/user-attachments/assets/c5b414e1-8cb4-43fc-b798-fd6a9ef53ee7" />
       </picture>
       <br><sub><b>Tools</b> for an image</sub>
     </td>
     <td align="center">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/images/wheel-actions-dark.png">
-        <img src="docs/images/wheel-actions-light.png" alt="The Actions wheel" width="360">
+        <img width="360"alt="Preview of actions for any file" src="https://github.com/user-attachments/assets/62cc3b9c-610f-452d-9794-2e23a0de8c35" />
       </picture>
       <br><sub><b>Actions</b> for any file</sub>
     </td>
